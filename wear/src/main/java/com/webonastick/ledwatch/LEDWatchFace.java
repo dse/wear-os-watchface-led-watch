@@ -22,6 +22,7 @@ import android.widget.Toast;
 
 import java.lang.ref.WeakReference;
 import java.util.Calendar;
+import java.util.Locale;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 
@@ -102,6 +103,8 @@ public class LEDWatchFace extends CanvasWatchFaceService {
 
         private Resources resources;
         private Typeface sevenSegmentTypeface;
+
+        private boolean is24Hour = false;
 
         @Override
         public void onCreate(SurfaceHolder holder) {
@@ -254,11 +257,33 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             long now = System.currentTimeMillis();
             mCalendar.setTimeInMillis(now);
 
-            String text = mAmbient
-                    ? String.format("%d:%02d", mCalendar.get(Calendar.HOUR),
-                    mCalendar.get(Calendar.MINUTE))
-                    : String.format("%d:%02d:%02d", mCalendar.get(Calendar.HOUR),
-                    mCalendar.get(Calendar.MINUTE), mCalendar.get(Calendar.SECOND));
+            int hour12 = mCalendar.get(Calendar.HOUR);
+            int hour24 = mCalendar.get(Calendar.HOUR_OF_DAY);
+            int minute = mCalendar.get(Calendar.MINUTE);
+            int second = mCalendar.get(Calendar.SECOND);
+            boolean isPM = mCalendar.get(Calendar.AM_PM) == Calendar.PM;
+
+            String text;
+            if (is24Hour) {
+                if (mAmbient) {
+                    text = String.format(Locale.getDefault(), "%02d:%02d !!", hour24, minute);
+                } else {
+                    text = String.format(Locale.getDefault(), "%02d:%02d:%02d", hour24, minute, second);
+                }
+            } else {
+                if (mAmbient) {
+                    text = String.format(Locale.getDefault(), "%02d:%02d !!", hour12, minute);
+                } else {
+                    text = String.format(Locale.getDefault(), "%02d:%02d:%02d", hour12, minute, second);
+                }
+                if (text.charAt(0) == '0') {
+                    text = "!" + text.substring(1);
+                }
+                if (isPM) {
+                    text = "." + text; // always followed by blank or 1
+                }
+            }
+
             canvas.drawText(text, mXOffset, mYOffset, mTextPaint);
         }
 
