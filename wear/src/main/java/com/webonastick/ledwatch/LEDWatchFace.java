@@ -132,9 +132,6 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             // Initializes Watch Face.
             mTextPaint = new Paint();
             mTextPaint.setTypeface(sevenSegmentTypeface);
-            mTextPaint.setAntiAlias(true);
-            mTextPaint.setColor(
-                    ContextCompat.getColor(getApplicationContext(), R.color.digital_text));
         }
 
         @Override
@@ -283,6 +280,17 @@ public class LEDWatchFace extends CanvasWatchFaceService {
                     text = "." + text; // always followed by blank or 1
                 }
             }
+
+            if (mAmbient) {
+                mTextPaint.setAntiAlias(false);
+                mTextPaint.setColor(
+                        ContextCompat.getColor(getApplicationContext(), R.color.ambient_digital_text));
+            } else {
+                mTextPaint.setAntiAlias(true);
+                mTextPaint.setColor(
+                        ContextCompat.getColor(getApplicationContext(), R.color.digital_text));
+            }
+
 
             canvas.drawText(text, mXOffset, mYOffset, mTextPaint);
         }
