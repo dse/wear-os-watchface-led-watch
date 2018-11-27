@@ -45,7 +45,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
      * Update rate in milliseconds for interactive mode. Defaults to one second
      * because the watch face needs to update seconds in interactive mode.
      */
-    private static final long INTERACTIVE_UPDATE_RATE_MS = TimeUnit.SECONDS.toMillis(1);
+    private static final long INTERACTIVE_UPDATE_RATE_MS = TimeUnit.SECONDS.toMillis(1) / 2;
 
     /**
      * Handler message id for updating the time periodically in interactive mode.
@@ -194,8 +194,11 @@ public class LEDWatchFace extends CanvasWatchFaceService {
         @Override
         public void onPropertiesChanged(Bundle properties) {
             super.onPropertiesChanged(properties);
+
             mLowBitAmbient = properties.getBoolean(PROPERTY_LOW_BIT_AMBIENT, false);
             mBurnInProtection = properties.getBoolean(PROPERTY_BURN_IN_PROTECTION, false);
+
+            updateTextPaintProperties();
         }
 
         @Override
@@ -209,13 +212,21 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             super.onAmbientModeChanged(inAmbientMode);
 
             mAmbient = inAmbientMode;
-            if (mLowBitAmbient) {
-                mTextPaint.setAntiAlias(!inAmbientMode);
-            }
+            updateTextPaintProperties();
 
             // Whether the timer should be running depends on whether we're visible (as well as
             // whether we're in ambient mode), so we may need to start or stop the timer.
             updateTimer();
+        }
+
+        private void updateTextPaintProperties() {
+            if (mAmbient) {
+                mTextPaint.setAntiAlias(false);
+                mTextPaint.setColor(ContextCompat.getColor(getApplicationContext(), R.color.ambient_digital_text));
+            } else {
+                mTextPaint.setAntiAlias(true);
+                mTextPaint.setColor(ContextCompat.getColor(getApplicationContext(), R.color.digital_text));
+            }
         }
 
         /**
@@ -258,7 +269,9 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             int hour24 = mCalendar.get(Calendar.HOUR_OF_DAY);
             int minute = mCalendar.get(Calendar.MINUTE);
             int second = mCalendar.get(Calendar.SECOND);
+            int millis = mCalendar.get(Calendar.MILLISECOND);
             boolean isPM = mCalendar.get(Calendar.AM_PM) == Calendar.PM;
+            boolean blink = millis >= 400;
 
             String text;
             if (is24Hour) {
@@ -280,18 +293,9 @@ public class LEDWatchFace extends CanvasWatchFaceService {
                     text = "." + text; // always followed by blank or 1
                 }
             }
-
-            if (mAmbient) {
-                mTextPaint.setAntiAlias(false);
-                mTextPaint.setColor(
-                        ContextCompat.getColor(getApplicationContext(), R.color.ambient_digital_text));
-            } else {
-                mTextPaint.setAntiAlias(true);
-                mTextPaint.setColor(
-                        ContextCompat.getColor(getApplicationContext(), R.color.digital_text));
+            if (blink && !mAmbient) {
+                text = text.replace(':', ' ');
             }
-
-
             canvas.drawText(text, mXOffset, mYOffset, mTextPaint);
         }
 
