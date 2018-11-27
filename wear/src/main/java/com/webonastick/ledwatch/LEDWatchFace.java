@@ -100,6 +100,9 @@ public class LEDWatchFace extends CanvasWatchFaceService {
         private boolean mBurnInProtection;
         private boolean mAmbient;
 
+        private Resources resources;
+        private Typeface sevenSegmentTypeface;
+
         @Override
         public void onCreate(SurfaceHolder holder) {
             super.onCreate(holder);
@@ -118,10 +121,14 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             mBackgroundPaint.setColor(
                     ContextCompat.getColor(getApplicationContext(), R.color.background));
 
+            resources = LEDWatchFace.this.getResources();
+            sevenSegmentTypeface = Typeface.createFromAsset(
+                    resources.getAssets(), "fonts/DSEG7ClassicMini-Italic.ttf"
+            );
 
             // Initializes Watch Face.
             mTextPaint = new Paint();
-            mTextPaint.setTypeface(NORMAL_TYPEFACE);
+            mTextPaint.setTypeface(sevenSegmentTypeface);
             mTextPaint.setAntiAlias(true);
             mTextPaint.setColor(
                     ContextCompat.getColor(getApplicationContext(), R.color.digital_text));
