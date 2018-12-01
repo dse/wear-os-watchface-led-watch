@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="background">#001900</color>
+    <color name="background">#000000</color>
     <color name="digital_text">#55ff55</color>
     <color name="ambient_digital_text">#ffffff</color>
-    <integer name="segments_alpha_opacity">17</integer>
+    <integer name="segments_alpha_opacity">25</integer>
 </resources>
