@@ -16,9 +16,12 @@ import android.os.Message;
 import android.support.v4.content.ContextCompat;
 import android.support.wearable.watchface.CanvasWatchFaceService;
 import android.support.wearable.watchface.WatchFaceStyle;
+import android.util.DisplayMetrics;
+import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.WindowInsets;
 import android.widget.Toast;
+import android.util.Log;
 
 import java.lang.ref.WeakReference;
 import java.util.Calendar;
@@ -89,10 +92,25 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             }
         };
         private boolean mRegisteredTimeZoneReceiver = false;
+
+        private Paint mBackgroundPaint;
+
         private float mXOffset;
         private float mYOffset;
-        private Paint mBackgroundPaint;
+        private float mXOffsetTopLeft;
+        private float mYOffsetTopLeft;
+        private float mXOffsetTopRight;
+        private float mYOffsetTopRight;
+        private float mXOffsetBottom;
+        private float mYOffsetBottom;
+
+        private float lineSpacing;
+
         private Paint mTextPaint;
+        private Paint mTextPaintTopLeft;
+        private Paint mTextPaintTopRight;
+        private Paint mTextPaintBottom;
+
         /**
          * Whether the display supports fewer bits for each color in ambient mode. When true, we
          * disable anti-aliasing in ambient mode.
@@ -103,8 +121,18 @@ public class LEDWatchFace extends CanvasWatchFaceService {
 
         private Resources resources;
         private Typeface sevenSegmentTypeface;
+        private Typeface fourteenSegmentTypeface;
 
+        private boolean autoPosition = true;
+        private boolean autoTextSize = true;
         private boolean is24Hour = false;
+
+        private int surfaceWidth;
+        private int surfaceHeight;
+
+        private static final String TAG = "LEDWatchFace";
+
+        private int segmentsAlpha;
 
         @Override
         public void onCreate(SurfaceHolder holder) {
@@ -117,21 +145,43 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             mCalendar = Calendar.getInstance();
 
             Resources resources = LEDWatchFace.this.getResources();
-            mYOffset = resources.getDimension(R.dimen.digital_y_offset);
+            if (autoPosition) {
+                // do nothing
+            } else {
+                mYOffset = resources.getDimension(R.dimen.digital_y_offset);
+            }
+            lineSpacing = resources.getDimension(R.dimen.line_spacing);
+
+            segmentsAlpha = resources.getInteger(R.integer.segments_alpha_opacity);
 
             // Initializes background.
             mBackgroundPaint = new Paint();
-            mBackgroundPaint.setColor(
-                    ContextCompat.getColor(getApplicationContext(), R.color.background));
+            mBackgroundPaint.setColor(ContextCompat.getColor(getApplicationContext(), R.color.background));
 
             resources = LEDWatchFace.this.getResources();
             sevenSegmentTypeface = Typeface.createFromAsset(
                     resources.getAssets(), "fonts/DSEG7ClassicMini-Italic.ttf"
             );
+            fourteenSegmentTypeface = Typeface.createFromAsset(
+                    resources.getAssets(), "fonts/DSEG14ClassicMini-Italic.ttf"
+            );
 
             // Initializes Watch Face.
             mTextPaint = new Paint();
             mTextPaint.setTypeface(sevenSegmentTypeface);
+            mTextPaint.setTextAlign(Paint.Align.CENTER);
+
+            mTextPaintTopLeft = new Paint();
+            mTextPaintTopLeft.setTypeface(fourteenSegmentTypeface);
+            mTextPaintTopLeft.setTextAlign(Paint.Align.RIGHT);
+
+            mTextPaintTopRight = new Paint();
+            mTextPaintTopRight.setTypeface(sevenSegmentTypeface);
+            mTextPaintTopRight.setTextAlign(Paint.Align.LEFT);
+
+            mTextPaintBottom = new Paint();
+            mTextPaintBottom.setTypeface(sevenSegmentTypeface);
+            mTextPaintBottom.setTextAlign(Paint.Align.CENTER);
         }
 
         @Override
@@ -183,12 +233,55 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             // Load resources that have alternate values for round watches.
             Resources resources = LEDWatchFace.this.getResources();
             boolean isRound = insets.isRound();
-            mXOffset = resources.getDimension(isRound
-                    ? R.dimen.digital_x_offset_round : R.dimen.digital_x_offset);
-            float textSize = resources.getDimension(isRound
-                    ? R.dimen.digital_text_size_round : R.dimen.digital_text_size);
+            DisplayMetrics metrics = resources.getDisplayMetrics();
+            surfaceWidth = metrics.widthPixels;
+            surfaceHeight = metrics.heightPixels;
+
+            if (autoPosition) {
+                mXOffset = Math.round(surfaceWidth / 2f);
+                mXOffsetTopLeft = Math.round(surfaceWidth / 2f);
+                mXOffsetTopRight = Math.round(surfaceWidth / 2f);
+                mXOffsetBottom = Math.round(surfaceWidth / 2f);
+            } else {
+                mXOffset = resources.getDimension(
+                        isRound ? R.dimen.digital_x_offset_round : R.dimen.digital_x_offset
+                );
+                mXOffsetTopLeft = mXOffset;
+                mXOffsetTopRight = mXOffset;
+                mXOffsetBottom = mXOffset;
+            }
+
+            float textSize;
+
+            if (autoTextSize) {
+                Rect bounds = new Rect();
+                mTextPaint.setTextSize(surfaceWidth);
+                mTextPaint.getTextBounds("00:00", 0, 5, bounds);
+                textSize = (float) Math.floor(surfaceWidth * (isRound ? 0.85f : 0.9f)
+                        / (bounds.right - bounds.left)
+                        * (bounds.bottom - bounds.top));
+            } else {
+                textSize = resources.getDimension(
+                        isRound ? R.dimen.digital_text_size_round : R.dimen.digital_text_size
+                );
+            }
 
             mTextPaint.setTextSize(textSize);
+            mTextPaintTopLeft.setTextSize(Math.round(textSize / 2f));
+            mTextPaintTopRight.setTextSize(Math.round(textSize / 2f));
+            mTextPaintBottom.setTextSize(Math.round(textSize / 2f));
+
+            if (autoPosition) {
+                mYOffset = Math.round(surfaceHeight / 2f + textSize / 2f);
+                mYOffsetTopLeft = mYOffset - textSize - lineSpacing;
+                mYOffsetTopRight = mYOffset - textSize - lineSpacing;
+                mYOffsetBottom = mYOffset + Math.round(textSize / 2f) + lineSpacing;
+            } else {
+                mYOffset = resources.getDimension(R.dimen.digital_y_offset);
+                mYOffsetTopLeft = mYOffset - textSize - lineSpacing;
+                mYOffsetTopRight = mYOffset - textSize - lineSpacing;
+                mYOffsetBottom = mYOffset + Math.round(textSize / 2f) + lineSpacing;
+            }
         }
 
         @Override
@@ -223,9 +316,21 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             if (mAmbient) {
                 mTextPaint.setAntiAlias(false);
                 mTextPaint.setColor(ContextCompat.getColor(getApplicationContext(), R.color.ambient_digital_text));
+                mTextPaintTopLeft.setAntiAlias(false);
+                mTextPaintTopLeft.setColor(ContextCompat.getColor(getApplicationContext(), R.color.ambient_digital_text));
+                mTextPaintTopRight.setAntiAlias(false);
+                mTextPaintTopRight.setColor(ContextCompat.getColor(getApplicationContext(), R.color.ambient_digital_text));
+                mTextPaintBottom.setAntiAlias(false);
+                mTextPaintBottom.setColor(ContextCompat.getColor(getApplicationContext(), R.color.ambient_digital_text));
             } else {
                 mTextPaint.setAntiAlias(true);
                 mTextPaint.setColor(ContextCompat.getColor(getApplicationContext(), R.color.digital_text));
+                mTextPaintTopLeft.setAntiAlias(true);
+                mTextPaintTopLeft.setColor(ContextCompat.getColor(getApplicationContext(), R.color.digital_text));
+                mTextPaintTopRight.setAntiAlias(true);
+                mTextPaintTopRight.setColor(ContextCompat.getColor(getApplicationContext(), R.color.digital_text));
+                mTextPaintBottom.setAntiAlias(true);
+                mTextPaintBottom.setColor(ContextCompat.getColor(getApplicationContext(), R.color.digital_text));
             }
         }
 
@@ -270,33 +375,97 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             int minute = mCalendar.get(Calendar.MINUTE);
             int second = mCalendar.get(Calendar.SECOND);
             int millis = mCalendar.get(Calendar.MILLISECOND);
+
             boolean isPM = mCalendar.get(Calendar.AM_PM) == Calendar.PM;
             boolean blink = millis >= 400;
 
-            String text;
+            String text = null;
+            String textTopLeft = null;
+            String textTopRight = null;
+            String textBottom = null;
+
+            String allSegmentsOn;
+            String allSegmentsOnTopLeft = "~~~";
+            String allSegmentsOnTopRight = "!88";
+            String allSegmentsOnBottom = "88";
+
             if (is24Hour) {
-                if (mAmbient) {
-                    text = String.format(Locale.getDefault(), "%02d:%02d !!", hour24, minute);
-                } else {
-                    text = String.format(Locale.getDefault(), "%02d:%02d:%02d", hour24, minute, second);
-                }
+                allSegmentsOn = "88:88";
             } else {
-                if (mAmbient) {
-                    text = String.format(Locale.getDefault(), "%02d:%02d !!", hour12, minute);
-                } else {
-                    text = String.format(Locale.getDefault(), "%02d:%02d:%02d", hour12, minute, second);
-                }
+                allSegmentsOn = ".18:88";
+            }
+
+            if (is24Hour) {
+                text = String.format(Locale.getDefault(), "%02d:%02d", hour24, minute);
+            } else {
+                text = String.format(Locale.getDefault(), "%02d:%02d", hour12, minute);
+
+                // replace leading zero with space (all-segments-off)
                 if (text.charAt(0) == '0') {
                     text = "!" + text.substring(1);
                 }
+
+                // PM indicator
                 if (isPM) {
                     text = "." + text; // always followed by blank or 1
                 }
             }
+
+            if (!mAmbient) {
+                textBottom = String.format(Locale.getDefault(), "%02d", second);
+            }
+
+            textTopLeft = mCalendar.getDisplayName(Calendar.DAY_OF_WEEK, Calendar.SHORT, Locale.getDefault());
+            if (textTopLeft.length() > 3) {
+                textTopLeft = textTopLeft.substring(0, 3);
+            }
+            textTopLeft = textTopLeft.toUpperCase();
+
+            textTopRight = String.format(Locale.getDefault(), "!%2d", mCalendar.get(Calendar.DAY_OF_MONTH));
+            textTopRight = textTopRight.replace(" ", "!");
+
             if (blink && !mAmbient) {
                 text = text.replace(':', ' ');
+                if (textBottom != null) {
+                    textBottom = textBottom.replace(':', ' ');
+                }
             }
-            canvas.drawText(text, mXOffset, mYOffset, mTextPaint);
+
+            if (!mAmbient && segmentsAlpha > 0) {
+                mTextPaint.setAlpha(segmentsAlpha);
+                mTextPaintTopLeft.setAlpha(segmentsAlpha);
+                mTextPaintTopRight.setAlpha(segmentsAlpha);
+                mTextPaintBottom.setAlpha(segmentsAlpha);
+                if (text != null) {
+                    canvas.drawText(allSegmentsOn, mXOffset, mYOffset, mTextPaint);
+                }
+                if (textTopLeft != null) {
+                    canvas.drawText(allSegmentsOnTopLeft, mXOffsetTopLeft, mYOffsetTopLeft, mTextPaintTopLeft);
+                }
+                if (textTopRight != null) {
+                    canvas.drawText(allSegmentsOnTopRight, mXOffsetTopRight, mYOffsetTopRight, mTextPaintTopRight);
+                }
+                if (textBottom != null) {
+                    canvas.drawText(allSegmentsOnBottom, mXOffsetBottom, mYOffsetBottom, mTextPaintBottom);
+                }
+                mTextPaint.setAlpha(255);
+                mTextPaintTopLeft.setAlpha(255);
+                mTextPaintTopRight.setAlpha(255);
+                mTextPaintBottom.setAlpha(255);
+            }
+
+            if (text != null) {
+                canvas.drawText(text, mXOffset, mYOffset, mTextPaint);
+            }
+            if (textTopLeft != null) {
+                canvas.drawText(textTopLeft, mXOffsetTopLeft, mYOffsetTopLeft, mTextPaintTopLeft);
+            }
+            if (textTopRight != null) {
+                canvas.drawText(textTopRight, mXOffsetTopRight, mYOffsetTopRight, mTextPaintTopRight);
+            }
+            if (textBottom != null) {
+                canvas.drawText(textBottom, mXOffsetBottom, mYOffsetBottom, mTextPaintBottom);
+            }
         }
 
         /**
