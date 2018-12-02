@@ -34,28 +34,25 @@ import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Digital watch face with seconds. In ambient mode, the seconds aren't displayed. On devices with
- * low-bit ambient mode, the text is drawn without anti-aliasing in ambient mode.
- * <p>
- * Important Note: Because watch face apps do not have a default Activity in
- * their project, you will need to set your Configurations to
- * "Do not launch Activity" for both the Wear and/or Application modules. If you
- * are unsure how to do this, please review the "Run Starter project" section
- * in the Google Watch Face Code Lab:
- * https://codelabs.developers.google.com/codelabs/watchface/index.html#0
+ * A digital watch face with seconds, battery, and date.
+ * The colon blinks.
+ *
+ * Does not display seconds or blink the colon in ambient mode, and
+ * draws text without anti-aliasing.
  */
 public class LEDWatchFace extends CanvasWatchFaceService {
     private static final Typeface NORMAL_TYPEFACE =
             Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL);
 
     /**
-     * Update rate in milliseconds for interactive mode. Defaults to one second
-     * because the watch face needs to update seconds in interactive mode.
+     * Update rate in milliseconds for interactive mode.  1/2 second
+     * for blinking colons.
      */
     private static final long INTERACTIVE_UPDATE_RATE_MS = TimeUnit.SECONDS.toMillis(1) / 2;
 
     /**
-     * Handler message id for updating the time periodically in interactive mode.
+     * Handler message id for updating the time periodically in
+     * interactive mode.
      */
     private static final int MSG_UPDATE_TIME = 0;
 
@@ -120,8 +117,10 @@ public class LEDWatchFace extends CanvasWatchFaceService {
         private Paint mTextPaintBottomRight;
 
         /**
-         * Whether the display supports fewer bits for each color in ambient mode. When true, we
-         * disable anti-aliasing in ambient mode.
+         * Whether the display supports fewer bits for each color in
+         * ambient mode.  When true, many watch faces disable
+         * anti-aliasing in ambient mode.  This watch faces disables
+         * it outright.
          */
         private boolean mLowBitAmbient;
         private boolean mBurnInProtection;
@@ -133,7 +132,6 @@ public class LEDWatchFace extends CanvasWatchFaceService {
 
         private boolean mAutoPosition = true;
         private boolean mAutoTextSize = true;
-        private boolean mDefaultIs24Hour = true;
 
         private int mSurfaceWidth;
         private int mSurfaceHeight;
@@ -155,16 +153,10 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             mCalendar = Calendar.getInstance();
 
             Resources resources = LEDWatchFace.this.getResources();
-            if (mAutoPosition) {
-                // do nothing
-            } else {
-                mYOffsetMiddle = resources.getDimension(R.dimen.digital_y_offset);
-            }
             mLineSpacing = resources.getDimension(R.dimen.line_spacing);
 
             mSegmentsAlpha = resources.getInteger(R.integer.segments_alpha_opacity);
 
-            // Initializes background.
             mBackgroundPaint = new Paint();
             mBackgroundPaint.setColor(ContextCompat.getColor(getApplicationContext(), R.color.background));
 
@@ -176,23 +168,27 @@ public class LEDWatchFace extends CanvasWatchFaceService {
                     resources.getAssets(), "fonts/DSEG14ClassicMini-Italic.ttf"
             );
 
-            // Initializes Watch Face.
+            // time of day
             mTextPaintMiddle = new Paint();
             mTextPaintMiddle.setTypeface(mSevenSegmentTypeface);
             mTextPaintMiddle.setTextAlign(Paint.Align.CENTER);
 
+            // day of week
             mTextPaintTopLeft = new Paint();
             mTextPaintTopLeft.setTypeface(mFourteenSegmentTypeface);
             mTextPaintTopLeft.setTextAlign(Paint.Align.RIGHT);
 
+            // day of month
             mTextPaintTopRight = new Paint();
             mTextPaintTopRight.setTypeface(mSevenSegmentTypeface);
             mTextPaintTopRight.setTextAlign(Paint.Align.LEFT);
 
+            // battery percentage, " 0%" to "99%", or "100"
             mTextPaintBottomLeft = new Paint();
             mTextPaintBottomLeft.setTypeface(mFourteenSegmentTypeface);
             mTextPaintBottomLeft.setTextAlign(Paint.Align.RIGHT);
 
+            // seconds
             mTextPaintBottomRight = new Paint();
             mTextPaintBottomRight.setTypeface(mSevenSegmentTypeface);
             mTextPaintBottomRight.setTextAlign(Paint.Align.LEFT);
@@ -244,7 +240,6 @@ public class LEDWatchFace extends CanvasWatchFaceService {
         public void onApplyWindowInsets(WindowInsets insets) {
             super.onApplyWindowInsets(insets);
 
-            // Load resources that have alternate values for round watches.
             Resources resources = LEDWatchFace.this.getResources();
             boolean isRound = insets.isRound();
             DisplayMetrics metrics = resources.getDisplayMetrics();
@@ -358,8 +353,8 @@ public class LEDWatchFace extends CanvasWatchFaceService {
         }
 
         /**
-         * Captures tap event (and tap type) and toggles the background color if the user finishes
-         * a tap.
+         * Captures tap event (and tap type) and may perform actions
+         * in the future if the user finishes a tap.
          */
         @Override
         public void onTapCommand(int tapType, int x, int y, long eventTime) {
@@ -372,9 +367,6 @@ public class LEDWatchFace extends CanvasWatchFaceService {
                     break;
                 case TAP_TYPE_TAP:
                     // The user has completed the tap gesture.
-                    // TODO: Add code to handle the tap gesture.
-                    Toast.makeText(getApplicationContext(), R.string.message, Toast.LENGTH_SHORT)
-                            .show();
                     break;
             }
             invalidate();
@@ -391,8 +383,6 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             String allSegmentsOnBottomRight = "!88";
 
             if (!mAmbient && mBackgroundBitmap == null && mSegmentsAlpha > 8) {
-                Log.d(TAG, "A");
-                // Initializes background.
                 mBackgroundBitmapPaint = new Paint();
                 mBackgroundBitmapPaint.setColor(Color.BLACK);
 
@@ -435,10 +425,8 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             if (mAmbient) {
                 canvas.drawColor(Color.BLACK);
             } else if (!mAmbient && mBackgroundBitmap != null && mSegmentsAlpha > 8) {
-                Log.d(TAG, "B");
                 canvas.drawBitmap(mBackgroundBitmap, 0, 0, null);
             } else {
-                Log.d(TAG, "C");
                 canvas.drawRect(0, 0, bounds.width(), bounds.height(), mBackgroundPaint);
             }
 
@@ -449,7 +437,6 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             int batteryScale = batteryStatus.getIntExtra(BatteryManager.EXTRA_SCALE, -1);
             int batteryPercentage = Math.round(batteryLevel * 100f / batteryScale);
 
-            // Draw H:MM in ambient mode or H:MM:SS in interactive mode.
             long now = System.currentTimeMillis();
             mCalendar.setTimeInMillis(now);
 
@@ -462,21 +449,22 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             boolean isPM = mCalendar.get(Calendar.AM_PM) == Calendar.PM;
             boolean blink = millis >= 400;
 
-            String textMiddle = null;
-            String textTopLeft = null;
-            String textTopRight = null;
-            String textBottomLeft = null;
-            String textBottomRight = null;
-
+            String textMiddle = null;      // time of day
+            String textTopLeft = null;     // day of week
+            String textTopRight = null;    // day of momth
+            String textBottomLeft = null;  // battery percentage
+            String textBottomRight = null; // seconds
 
             boolean is24HourDF = DateFormat.is24HourFormat(LEDWatchFace.this);
-            boolean is24Hour;
+
             int is24HourInt;
             try {
                 is24HourInt = Settings.System.getInt(getContentResolver(), Settings.System.TIME_12_24);
             } catch (Settings.SettingNotFoundException e) {
                 is24HourInt = -1;
             }
+
+            boolean is24Hour;
             if (is24HourInt == 24) {
                 is24Hour = true;
             } else if (is24HourInt == 12) {
@@ -485,6 +473,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
                 is24Hour = is24HourDF;
             }
 
+            // time of day
             if (is24Hour) {
                 textMiddle = String.format(Locale.getDefault(), "%02d:%02d", hour24, minute);
             } else {
@@ -501,10 +490,17 @@ public class LEDWatchFace extends CanvasWatchFaceService {
                 }
             }
 
+            // blinking colon?
+            if (blink && !mAmbient) {
+                textMiddle = textMiddle.replace(':', ' ');
+            }
+
+            // seconds
             if (!mAmbient) {
                 textBottomRight = String.format(Locale.getDefault(), "!%02d", second);
             }
 
+            // battery percentage
             if (batteryPercentage < 0) {
                 textBottomLeft = "???";
             } else if (batteryPercentage < 100) {
@@ -515,18 +511,16 @@ public class LEDWatchFace extends CanvasWatchFaceService {
                 textBottomLeft = "???";
             }
 
+            // day of week
             textTopLeft = mCalendar.getDisplayName(Calendar.DAY_OF_WEEK, Calendar.SHORT, Locale.getDefault());
             if (textTopLeft.length() > 3) {
                 textTopLeft = textTopLeft.substring(0, 3);
             }
             textTopLeft = textTopLeft.toUpperCase();
 
+            // day of month
             textTopRight = String.format(Locale.getDefault(), "!%2d", mCalendar.get(Calendar.DAY_OF_MONTH));
             textTopRight = textTopRight.replace(" ", "!");
-
-            if (blink && !mAmbient) {
-                textMiddle = textMiddle.replace(':', ' ');
-            }
 
             if (textMiddle != null) {
                 canvas.drawText(textMiddle, mXOffsetMiddle, mYOffsetMiddle, mTextPaintMiddle);
@@ -546,8 +540,9 @@ public class LEDWatchFace extends CanvasWatchFaceService {
         }
 
         /**
-         * Starts the {@link #mUpdateTimeHandler} timer if it should be running and isn't currently
-         * or stops it if it shouldn't be running but currently is.
+         * Starts the {@link #mUpdateTimeHandler} timer if it should
+         * be running and isn't currently or stops it if it shouldn't
+         * be running but currently is.
          */
         private void updateTimer() {
             mUpdateTimeHandler.removeMessages(MSG_UPDATE_TIME);
@@ -557,8 +552,9 @@ public class LEDWatchFace extends CanvasWatchFaceService {
         }
 
         /**
-         * Returns whether the {@link #mUpdateTimeHandler} timer should be running. The timer should
-         * only run when we're visible and in interactive mode.
+         * Returns whether the {@link #mUpdateTimeHandler} timer
+         * should be running. The timer should only run when we're
+         * visible and in interactive mode.
          */
         private boolean shouldTimerBeRunning() {
             return isVisible() && !isInAmbientMode();
