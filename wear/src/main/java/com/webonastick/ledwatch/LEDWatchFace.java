@@ -158,7 +158,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             if (mAutoPosition) {
                 // do nothing
             } else {
-                mYOffset = resources.getDimension(R.dimen.digital_y_offset);
+                mYOffsetMiddle = resources.getDimension(R.dimen.digital_y_offset);
             }
             mLineSpacing = resources.getDimension(R.dimen.line_spacing);
 
@@ -259,18 +259,18 @@ public class LEDWatchFace extends CanvasWatchFaceService {
                 mXOffsetBottomRight = Math.round(mSurfaceWidth / 2f);
             } else {
                 mXOffsetMiddle = resources.getDimension(isRound ? R.dimen.digital_x_offset_round : R.dimen.digital_x_offset);
-                mXOffsetTopLeft = mXOffset;
-                mXOffsetTopRight = mXOffset;
-                mXOffsetBottomLeft = mXOffset;
-                mXOffsetBottomRight = mXOffset;
+                mXOffsetTopLeft = mXOffsetMiddle;
+                mXOffsetTopRight = mXOffsetMiddle;
+                mXOffsetBottomLeft = mXOffsetMiddle;
+                mXOffsetBottomRight = mXOffsetMiddle;
             }
 
             float textSize;
 
             if (mAutoTextSize) {
                 Rect bounds = new Rect();
-                mTextPaint.setTextSize(mSurfaceWidth);
-                mTextPaint.getTextBounds("00:00", 0, 5, bounds);
+                mTextPaintMiddle.setTextSize(mSurfaceWidth);
+                mTextPaintMiddle.getTextBounds("00:00", 0, 5, bounds);
                 textSize = (float) Math.floor(mSurfaceWidth * (isRound ? 0.85f : 0.9f)
                         / (bounds.right - bounds.left)
                         * (bounds.bottom - bounds.top));
@@ -288,16 +288,16 @@ public class LEDWatchFace extends CanvasWatchFaceService {
 
             if (mAutoPosition) {
                 mYOffsetMiddle = Math.round(mSurfaceHeight / 2f + textSize / 2f);
-                mYOffsetTopLeft = mYOffset - textSize - mLineSpacing;
-                mYOffsetTopRight = mYOffset - textSize - mLineSpacing;
-                mYOffsetBottomLeft = mYOffset + Math.round(textSize / 2f) + mLineSpacing;
-                mYOffsetBottomRight = mYOffset + Math.round(textSize / 2f) + mLineSpacing;
+                mYOffsetTopLeft = mYOffsetMiddle - textSize - mLineSpacing;
+                mYOffsetTopRight = mYOffsetMiddle - textSize - mLineSpacing;
+                mYOffsetBottomLeft = mYOffsetMiddle + Math.round(textSize / 2f) + mLineSpacing;
+                mYOffsetBottomRight = mYOffsetMiddle + Math.round(textSize / 2f) + mLineSpacing;
             } else {
                 mYOffsetMiddle = resources.getDimension(R.dimen.digital_y_offset);
-                mYOffsetTopLeft = mYOffset - textSize - mLineSpacing;
-                mYOffsetTopRight = mYOffset - textSize - mLineSpacing;
-                mYOffsetBottomLeft = mYOffset + Math.round(textSize / 2f) + mLineSpacing;
-                mYOffsetBottomRight = mYOffset + Math.round(textSize / 2f) + mLineSpacing;
+                mYOffsetTopLeft = mYOffsetMiddle - textSize - mLineSpacing;
+                mYOffsetTopRight = mYOffsetMiddle - textSize - mLineSpacing;
+                mYOffsetBottomLeft = mYOffsetMiddle + Math.round(textSize / 2f) + mLineSpacing;
+                mYOffsetBottomRight = mYOffsetMiddle + Math.round(textSize / 2f) + mLineSpacing;
             }
 
             mBackgroundBitmap = null;
