@@ -4,4 +4,11 @@
     <color name="digital_text">#55ff55</color>
     <color name="ambient_digital_text">#ffffff</color>
     <integer name="segments_alpha_opacity">25</integer>
+
+    <color name="foreground_color_greenscreen">#57ff57</color>
+    <color name="foreground_color_amber">#eacf4c</color>
+    <color name="foreground_color_red">#ff3366</color>
+    <color name="foreground_color_white">#ffffff</color>
+    <color name="foreground_color_yellow">#ffff00</color>
+    <color name="foreground_color_blue">#00ccff</color>
 </resources>

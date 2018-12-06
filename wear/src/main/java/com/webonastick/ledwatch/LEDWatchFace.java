@@ -16,6 +16,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.provider.Settings;
+import android.support.annotation.Nullable;
 import android.support.v4.content.ContextCompat;
 import android.support.wearable.watchface.CanvasWatchFaceService;
 import android.support.wearable.watchface.WatchFaceStyle;
@@ -41,6 +42,33 @@ import java.util.concurrent.TimeUnit;
  * draws text without anti-aliasing.
  */
 public class LEDWatchFace extends CanvasWatchFaceService {
+
+    private static final String TAG = "LEDWatchFace";
+
+    private static final int FOREGROUND_COLOR_GREENSCREEN = 1;
+    private static final int FOREGROUND_COLOR_AMBER       = 2;
+    private static final int FOREGROUND_COLOR_RED         = 3;
+    private static final int FOREGROUND_COLOR_WHITE       = 4;
+    private static final int FOREGROUND_COLOR_YELLOW      = 5;
+    private static final int FOREGROUND_COLOR_BLUE        = 6;
+
+    private static final int FONT_STYLE_NORMAL = 1;
+    private static final int FONT_STYLE_ITALIC = 2;
+
+    private static final int FONT_WEIGHT_LIGHT  = 1;
+    private static final int FONT_WEIGHT_NORMAL = 2;
+    private static final int FONT_WEIGHT_BOLD   = 3;
+
+    private static final int FONT_FAMILY_DSEG_CLASSIC = 1;
+    private static final int FONT_FAMILY_DSEG_MODERN  = 2;
+
+    private static final int FONT_SIZE_MINI    = 1;
+    private static final int FONT_SIZE_REGULAR = 2;
+
+    private static final int TEXT_ALIGN_LEFT   = 1;
+    private static final int TEXT_ALIGN_CENTER = 2;
+    private static final int TEXT_ALIGN_RIGHT  = 3;
+
     private static final Typeface NORMAL_TYPEFACE =
             Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL);
 
@@ -108,7 +136,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
         private float mXOffsetBottomRight;
         private float mYOffsetBottomRight;
 
-        private float mLineSpacing;
+        private float mLineSpacing; // configurable, as device pixels, or s/m/l
 
         private Paint mTextPaintMiddle;
         private Paint mTextPaintTopLeft;
@@ -126,7 +154,6 @@ public class LEDWatchFace extends CanvasWatchFaceService {
         private boolean mBurnInProtection;
         private boolean mAmbient;
 
-        private Resources mResources; // FIXME: can be deleted?
         private Typeface mSevenSegmentTypeface;
         private Typeface mFourteenSegmentTypeface;
 
@@ -136,11 +163,22 @@ public class LEDWatchFace extends CanvasWatchFaceService {
         private int mSurfaceWidth;
         private int mSurfaceHeight;
 
-        private static final String TAG = "LEDWatchFace";
-
-        private int mSegmentsAlpha;
+        private int mSegmentsAlpha; // configurable, as fraction
 
         Bitmap mBackgroundBitmap;
+        
+        private int mLetterSpacing = 2; // configurable, as integer 0 to 3, 0 is good default
+
+        private int mFontStyle  = FONT_STYLE_ITALIC;          // configurable, italic or upright variant
+        private int mFontWeight = FONT_WEIGHT_LIGHT;          // configurable, light or regular or bold variant
+        private int mFontFamily = FONT_FAMILY_DSEG_CLASSIC;   // configurable, classic or modern variant
+        private int mFontSize   = FONT_SIZE_REGULAR;          // configurable, regular or mini variant
+        private int mForegroundColor = FOREGROUND_COLOR_BLUE; // configurable, a few selections
+
+        private float mSmallerTextSizeRatio = 0.6f; // configurable, as fraction, 0.5 is good default
+
+        @Nullable
+        private boolean m24Hour; // configurable, as boolean?
 
         @Override
         public void onCreate(SurfaceHolder holder) {
@@ -162,10 +200,12 @@ public class LEDWatchFace extends CanvasWatchFaceService {
 
             resources = LEDWatchFace.this.getResources();
             mSevenSegmentTypeface = Typeface.createFromAsset(
-                    resources.getAssets(), "fonts/DSEG7ClassicMini-Italic.ttf"
+                    resources.getAssets(),
+                    getFontFilename(7, mFontStyle, mFontWeight, mFontFamily, mFontSize)
             );
             mFourteenSegmentTypeface = Typeface.createFromAsset(
-                    resources.getAssets(), "fonts/DSEG14ClassicMini-Italic.ttf"
+                    resources.getAssets(),
+                    getFontFilename(14, mFontStyle, mFontWeight, mFontFamily, mFontSize)
             );
 
             // time of day
@@ -265,7 +305,12 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             if (mAutoTextSize) {
                 Rect bounds = new Rect();
                 mTextPaintMiddle.setTextSize(mSurfaceWidth);
-                mTextPaintMiddle.getTextBounds("00:00", 0, 5, bounds);
+                String sampleText = "88:88";
+                if (mLetterSpacing > 0) {
+                    sampleText = addLetterSpacing(sampleText, mLetterSpacing, TEXT_ALIGN_CENTER);
+                }
+
+                mTextPaintMiddle.getTextBounds(sampleText, 0, sampleText.length(), bounds);
                 textSize = (float) Math.floor(mSurfaceWidth * (isRound ? 0.85f : 0.9f)
                         / (bounds.right - bounds.left)
                         * (bounds.bottom - bounds.top));
@@ -276,23 +321,23 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             }
 
             mTextPaintMiddle.setTextSize(textSize);
-            mTextPaintTopLeft.setTextSize(Math.round(textSize / 2f));
-            mTextPaintTopRight.setTextSize(Math.round(textSize / 2f));
-            mTextPaintBottomLeft.setTextSize(Math.round(textSize / 2f));
-            mTextPaintBottomRight.setTextSize(Math.round(textSize / 2f));
+            mTextPaintTopLeft.setTextSize(Math.round(textSize * mSmallerTextSizeRatio));
+            mTextPaintTopRight.setTextSize(Math.round(textSize * mSmallerTextSizeRatio));
+            mTextPaintBottomLeft.setTextSize(Math.round(textSize * mSmallerTextSizeRatio));
+            mTextPaintBottomRight.setTextSize(Math.round(textSize * mSmallerTextSizeRatio));
 
             if (mAutoPosition) {
                 mYOffsetMiddle = Math.round(mSurfaceHeight / 2f + textSize / 2f);
                 mYOffsetTopLeft = mYOffsetMiddle - textSize - mLineSpacing;
                 mYOffsetTopRight = mYOffsetMiddle - textSize - mLineSpacing;
-                mYOffsetBottomLeft = mYOffsetMiddle + Math.round(textSize / 2f) + mLineSpacing;
-                mYOffsetBottomRight = mYOffsetMiddle + Math.round(textSize / 2f) + mLineSpacing;
+                mYOffsetBottomLeft = mYOffsetMiddle + Math.round(textSize * mSmallerTextSizeRatio) + mLineSpacing;
+                mYOffsetBottomRight = mYOffsetMiddle + Math.round(textSize * mSmallerTextSizeRatio) + mLineSpacing;
             } else {
                 mYOffsetMiddle = resources.getDimension(R.dimen.digital_y_offset);
                 mYOffsetTopLeft = mYOffsetMiddle - textSize - mLineSpacing;
                 mYOffsetTopRight = mYOffsetMiddle - textSize - mLineSpacing;
-                mYOffsetBottomLeft = mYOffsetMiddle + Math.round(textSize / 2f) + mLineSpacing;
-                mYOffsetBottomRight = mYOffsetMiddle + Math.round(textSize / 2f) + mLineSpacing;
+                mYOffsetBottomLeft = mYOffsetMiddle + Math.round(textSize * mSmallerTextSizeRatio) + mLineSpacing;
+                mYOffsetBottomRight = mYOffsetMiddle + Math.round(textSize * mSmallerTextSizeRatio) + mLineSpacing;
             }
 
             mBackgroundBitmap = null;
@@ -339,16 +384,41 @@ public class LEDWatchFace extends CanvasWatchFaceService {
                 mTextPaintBottomRight.setAntiAlias(false);
                 mTextPaintBottomRight.setColor(ContextCompat.getColor(getApplicationContext(), R.color.ambient_digital_text));
             } else {
+                int textColor;
+                switch (mForegroundColor) {
+                    case FOREGROUND_COLOR_AMBER:
+                        textColor = ContextCompat.getColor(getApplicationContext(), R.color.foreground_color_amber);
+                        break;
+                    case FOREGROUND_COLOR_GREENSCREEN:
+                        textColor = ContextCompat.getColor(getApplicationContext(), R.color.foreground_color_greenscreen);
+                        break;
+                    case FOREGROUND_COLOR_RED:
+                        textColor = ContextCompat.getColor(getApplicationContext(), R.color.foreground_color_red);
+                        break;
+                    case FOREGROUND_COLOR_WHITE:
+                        textColor = ContextCompat.getColor(getApplicationContext(), R.color.foreground_color_white);
+                        break;
+                    case FOREGROUND_COLOR_YELLOW:
+                        textColor = ContextCompat.getColor(getApplicationContext(), R.color.foreground_color_yellow);
+                        break;
+                    case FOREGROUND_COLOR_BLUE:
+                        textColor = ContextCompat.getColor(getApplicationContext(), R.color.foreground_color_blue);
+                        break;
+                    default:
+                        textColor = ContextCompat.getColor(getApplicationContext(), R.color.digital_text);
+                        break;
+                }
+
                 mTextPaintMiddle.setAntiAlias(true);
-                mTextPaintMiddle.setColor(ContextCompat.getColor(getApplicationContext(), R.color.digital_text));
+                mTextPaintMiddle.setColor(textColor);
                 mTextPaintTopLeft.setAntiAlias(true);
-                mTextPaintTopLeft.setColor(ContextCompat.getColor(getApplicationContext(), R.color.digital_text));
+                mTextPaintTopLeft.setColor(textColor);
                 mTextPaintTopRight.setAntiAlias(true);
-                mTextPaintTopRight.setColor(ContextCompat.getColor(getApplicationContext(), R.color.digital_text));
+                mTextPaintTopRight.setColor(textColor);
                 mTextPaintBottomLeft.setAntiAlias(true);
-                mTextPaintBottomLeft.setColor(ContextCompat.getColor(getApplicationContext(), R.color.digital_text));
+                mTextPaintBottomLeft.setColor(textColor);
                 mTextPaintBottomRight.setAntiAlias(true);
-                mTextPaintBottomRight.setColor(ContextCompat.getColor(getApplicationContext(), R.color.digital_text));
+                mTextPaintBottomRight.setColor(textColor);
             }
         }
 
@@ -376,11 +446,21 @@ public class LEDWatchFace extends CanvasWatchFaceService {
 
         @Override
         public void onDraw(Canvas canvas, Rect bounds) {
+
+            // for faint all-segments-on characters
             String allSegmentsOnMiddle = ".88:88";
             String allSegmentsOnTopLeft = "~~~";
-            String allSegmentsOnTopRight = "!88";
+            String allSegmentsOnTopRight = "888";
             String allSegmentsOnBottomLeft = "~~~";
-            String allSegmentsOnBottomRight = "!88";
+            String allSegmentsOnBottomRight = "888";
+            
+            if (mLetterSpacing > 0) {
+                allSegmentsOnMiddle      = addLetterSpacing(allSegmentsOnMiddle,      mLetterSpacing, TEXT_ALIGN_CENTER);
+                allSegmentsOnTopLeft     = addLetterSpacing(allSegmentsOnTopLeft,     mLetterSpacing, TEXT_ALIGN_RIGHT);
+                allSegmentsOnTopRight    = addLetterSpacing(allSegmentsOnTopRight,    mLetterSpacing, TEXT_ALIGN_LEFT);
+                allSegmentsOnBottomLeft  = addLetterSpacing(allSegmentsOnBottomLeft,  mLetterSpacing, TEXT_ALIGN_RIGHT);
+                allSegmentsOnBottomRight = addLetterSpacing(allSegmentsOnBottomRight, mLetterSpacing, TEXT_ALIGN_LEFT);
+            }
 
             if (!mAmbient && mBackgroundBitmap == null && mSegmentsAlpha > 8) {
                 mBackgroundBitmapPaint = new Paint();
@@ -455,22 +535,23 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             String textBottomLeft = null;  // battery percentage
             String textBottomRight = null; // seconds
 
-            boolean is24HourDF = DateFormat.is24HourFormat(LEDWatchFace.this);
-
-            int is24HourInt;
-            try {
-                is24HourInt = Settings.System.getInt(getContentResolver(), Settings.System.TIME_12_24);
-            } catch (Settings.SettingNotFoundException e) {
-                is24HourInt = -1;
-            }
-
             boolean is24Hour;
-            if (is24HourInt == 24) {
-                is24Hour = true;
-            } else if (is24HourInt == 12) {
-                is24Hour = false;
+            if (m24Hour == null) {
+                int is24HourInt;
+                try {
+                    is24HourInt = Settings.System.getInt(getContentResolver(), Settings.System.TIME_12_24);
+                } catch (Settings.SettingNotFoundException e) {
+                    is24HourInt = -1;
+                }
+                if (is24HourInt == 24) {
+                    is24Hour = true;
+                } else if (is24HourInt == 12) {
+                    is24Hour = false;
+                } else {
+                    is24Hour = DateFormat.is24HourFormat(LEDWatchFace.this);
+                }
             } else {
-                is24Hour = is24HourDF;
+                is24Hour = m24Hour;
             }
 
             // time of day
@@ -486,7 +567,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
 
                 // PM indicator
                 if (isPM) {
-                    textMiddle = "." + textMiddle; // always followed by blank or 1
+                    textMiddle = "." + textMiddle; // '.' is always followed by blank numeral or '1'
                 }
             }
 
@@ -522,19 +603,42 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             textTopRight = String.format(Locale.getDefault(), "!%2d", mCalendar.get(Calendar.DAY_OF_MONTH));
             textTopRight = textTopRight.replace(" ", "!");
 
+            if (mLetterSpacing > 0) {
+                if (textMiddle != null) {
+                    textMiddle      = addLetterSpacing(textMiddle,      mLetterSpacing, TEXT_ALIGN_CENTER);
+                }
+                if (textTopLeft != null) {
+                    textTopLeft     = addLetterSpacing(textTopLeft,     mLetterSpacing, TEXT_ALIGN_RIGHT);
+                }
+                if (textTopRight != null) {
+                    textTopRight    = addLetterSpacing(textTopRight,    mLetterSpacing, TEXT_ALIGN_LEFT);
+                }
+                if (textBottomLeft != null) {
+                    textBottomLeft  = addLetterSpacing(textBottomLeft,  mLetterSpacing, TEXT_ALIGN_RIGHT);
+                }
+                if (textBottomRight != null) {
+                    textBottomRight = addLetterSpacing(textBottomRight, mLetterSpacing, TEXT_ALIGN_LEFT);
+                }
+            }
+
             if (textMiddle != null) {
+                textMiddle = textMiddle.replaceAll(",", "");
                 canvas.drawText(textMiddle, mXOffsetMiddle, mYOffsetMiddle, mTextPaintMiddle);
             }
             if (textTopLeft != null) {
+                textTopLeft = textTopLeft.replaceAll(",", "");
                 canvas.drawText(textTopLeft, mXOffsetTopLeft, mYOffsetTopLeft, mTextPaintTopLeft);
             }
             if (textTopRight != null) {
+                textTopRight = textTopRight.replaceAll(",", "");
                 canvas.drawText(textTopRight, mXOffsetTopRight, mYOffsetTopRight, mTextPaintTopRight);
             }
             if (textBottomLeft != null) {
+                textBottomLeft = textBottomLeft.replaceAll(",", "");
                 canvas.drawText(textBottomLeft, mXOffsetBottomLeft, mYOffsetBottomLeft, mTextPaintBottomLeft);
             }
             if (textBottomRight != null) {
+                textBottomRight = textBottomRight.replaceAll(",", "");
                 canvas.drawText(textBottomRight, mXOffsetBottomRight, mYOffsetBottomRight, mTextPaintBottomRight);
             }
         }
@@ -572,5 +676,98 @@ public class LEDWatchFace extends CanvasWatchFaceService {
                 mUpdateTimeHandler.sendEmptyMessageDelayed(MSG_UPDATE_TIME, delayMs);
             }
         }
+
+        /**
+         * Build the name of a font resources, returning it as a string.
+         *
+         * @param segments an integer, 7 or 14.
+         * @param fontStyle one of the FONT_STYLE_* constants.
+         * @param fontWeight one of the FONT_WEIGHT_* constants.
+         * @param fontFamily one of the FONT_FAMILY_* constants.
+         * @param fontSize one of the FONT_SIZE_* constants.
+         * @return a font resource name.
+         */
+        private String getFontFilename(
+                int segments,
+                int fontStyle,
+                int fontWeight,
+                int fontFamily,
+                int fontSize
+        ) {
+            String result = "fonts/DSEG";
+            result += segments;
+            switch (fontFamily) {
+                case FONT_FAMILY_DSEG_CLASSIC:
+                    result += "Classic";
+                    break;
+                case FONT_FAMILY_DSEG_MODERN:
+                    result += "Modern";
+                    break;
+            }
+            switch (fontSize) {
+                case FONT_SIZE_MINI:
+                    result += "Mini-";
+                    break;
+                default:
+                    result += "-";
+                    break;
+            }
+            switch (fontWeight) {
+                case FONT_WEIGHT_LIGHT:
+                    result += "Light";
+                    break;
+                case FONT_WEIGHT_NORMAL:
+                    result += "Regular";
+                    break;
+                case FONT_WEIGHT_BOLD:
+                    result += "Bold";
+                    break;
+            }
+            switch (fontStyle) {
+                case FONT_STYLE_NORMAL:
+                    result += ".ttf";
+                    break;
+                case FONT_STYLE_ITALIC:
+                    result += "Italic.ttf";
+                    break;
+            }
+            return result;
+        }
+    }
+
+    /**
+     * Insert at each point between two characters a number of spaces,
+     * returning the resulting string.
+     *
+     * If textAlign is TEXT_ALIGN_LEFT, also pad spaces before the first character.
+     *
+     * If textAlign is TEXT_ALIGN_RIGHT, also pad spaces after the last character.
+     *
+     * @param s the original string
+     * @param spacing the number of spaces to insert at each location
+     * @param textAlign
+     * @return the resulting string
+     */
+    private static String addLetterSpacing(String s, int spacing, int textAlign) {
+        int length = s.length();
+        int lastIndex = length - 1;
+        int firstIndex = 1;
+        StringBuffer resultBuffer = new StringBuffer(s);
+        if (textAlign == TEXT_ALIGN_LEFT) {
+            firstIndex = 0;
+        } else if (textAlign == TEXT_ALIGN_RIGHT) {
+            lastIndex = length;
+        }
+        for (int i = lastIndex; i >= firstIndex; i -= 1) {
+            // '.' at char 0 is PM indicator.
+            // always occurs before blank numeral or '1'.
+            if (i > 0 && s.charAt(i - 1) == '.') {
+                continue;
+            }
+            for (int j = 1; j <= spacing; j += 1) {
+                resultBuffer.insert(i, ' ');
+            }
+        }
+        return resultBuffer.toString();
     }
 }
