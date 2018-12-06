@@ -22,6 +22,7 @@ import android.support.wearable.watchface.CanvasWatchFaceService;
 import android.support.wearable.watchface.WatchFaceStyle;
 import android.text.format.DateFormat;
 import android.util.DisplayMetrics;
+import android.view.Gravity;
 import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.WindowInsets;
@@ -136,8 +137,6 @@ public class LEDWatchFace extends CanvasWatchFaceService {
         private float mXOffsetBottomRight;
         private float mYOffsetBottomRight;
 
-        private float mLineSpacing; // configurable, as device pixels, or s/m/l
-
         private Paint mTextPaintMiddle;
         private Paint mTextPaintTopLeft;
         private Paint mTextPaintTopRight;
@@ -163,30 +162,33 @@ public class LEDWatchFace extends CanvasWatchFaceService {
         private int mSurfaceWidth;
         private int mSurfaceHeight;
 
-        private int mSegmentsAlpha; // configurable, as fraction
-
         Bitmap mBackgroundBitmap;
-        
-        private int mLetterSpacing = 2; // configurable, as integer 0 to 3, 0 is good default
 
-        private int mFontStyle  = FONT_STYLE_ITALIC;          // configurable, italic or upright variant
-        private int mFontWeight = FONT_WEIGHT_LIGHT;          // configurable, light or regular or bold variant
-        private int mFontFamily = FONT_FAMILY_DSEG_CLASSIC;   // configurable, classic or modern variant
-        private int mFontSize   = FONT_SIZE_REGULAR;          // configurable, regular or mini variant
-        private int mForegroundColor = FOREGROUND_COLOR_BLUE; // configurable, a few selections
+        /* CONFIGURABLE OPTIONS */
 
-        private float mSmallerTextSizeRatio = 0.6f; // configurable, as fraction, 0.5 is good default
+        private float mLineSpacing; // device pixels?  or small/medium/large enum?
+        private int mSegmentsAlpha; // fraction?  or integer?
+        private int mLetterSpacing = 1; // integer 0 to 3, 0 is good default
+        private float mSmallerTextSizeRatio = 0.6f; // fraction, 0.5 is good default
 
-        @Nullable
-        private boolean m24Hour; // configurable, as boolean?
+        private int mFontStyle  = FONT_STYLE_ITALIC;            // normal or italic
+        private int mFontWeight = FONT_WEIGHT_NORMAL;           // light, normal, or bold
+        private int mFontFamily = FONT_FAMILY_DSEG_CLASSIC;     // classic or modern
+        private int mFontSize   = FONT_SIZE_REGULAR;            // regular or mini variant
+        private int mForegroundColor = FOREGROUND_COLOR_YELLOW; // a few selections
+
+        private Boolean m24Hour = null; // configurable, as boolean?
 
         @Override
         public void onCreate(SurfaceHolder holder) {
             super.onCreate(holder);
 
-            setWatchFaceStyle(new WatchFaceStyle.Builder(LEDWatchFace.this)
-                    .setAcceptsTapEvents(true)
-                    .build());
+            WatchFaceStyle.Builder styleBuilder = new WatchFaceStyle.Builder(LEDWatchFace.this);
+            styleBuilder.setAcceptsTapEvents(true);
+            styleBuilder.setStatusBarGravity(Gravity.CENTER_HORIZONTAL | Gravity.TOP);
+            // styleBuilder.setHotwordIndicatorGravity(Gravity.CENTER_HORIZONTAL | Gravity.BOTTOM);
+            WatchFaceStyle style = styleBuilder.build();
+            setWatchFaceStyle(style);
 
             mCalendar = Calendar.getInstance();
 
@@ -453,7 +455,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             String allSegmentsOnTopRight = "888";
             String allSegmentsOnBottomLeft = "~~~";
             String allSegmentsOnBottomRight = "888";
-            
+
             if (mLetterSpacing > 0) {
                 allSegmentsOnMiddle      = addLetterSpacing(allSegmentsOnMiddle,      mLetterSpacing, TEXT_ALIGN_CENTER);
                 allSegmentsOnTopLeft     = addLetterSpacing(allSegmentsOnTopLeft,     mLetterSpacing, TEXT_ALIGN_RIGHT);
