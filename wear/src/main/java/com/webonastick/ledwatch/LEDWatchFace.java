@@ -16,17 +16,14 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.provider.Settings;
-import android.support.annotation.Nullable;
 import android.support.v4.content.ContextCompat;
 import android.support.wearable.watchface.CanvasWatchFaceService;
 import android.support.wearable.watchface.WatchFaceStyle;
 import android.text.format.DateFormat;
 import android.util.DisplayMetrics;
 import android.view.Gravity;
-import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.WindowInsets;
-import android.widget.Toast;
 import android.util.Log;
 
 import java.lang.ref.WeakReference;
@@ -177,7 +174,16 @@ public class LEDWatchFace extends CanvasWatchFaceService {
         private int mFontSize   = FONT_SIZE_REGULAR;            // regular or mini variant
         private int mForegroundColor = FOREGROUND_COLOR_YELLOW; // a few selections
 
-        private Boolean m24Hour = null; // configurable, as boolean?
+        private Boolean m24Hour = null;
+
+        private boolean mBlinkingColon = true;
+
+        private boolean mShowDayOfWeek    = true;
+        private boolean mShowDayOfMonth   = true;
+        private boolean mShowBatteryLevel = true;
+        private boolean mShowSeconds      = true;
+
+        private boolean mEasterEgg105850 = false; // ;-)
 
         @Override
         public void onCreate(SurfaceHolder holder) {
@@ -453,7 +459,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             String allSegmentsOnMiddle = ".88:88";
             String allSegmentsOnTopLeft = "~~~";
             String allSegmentsOnTopRight = "888";
-            String allSegmentsOnBottomLeft = "~~~";
+            String allSegmentsOnBottomLeft = "1~~~";
             String allSegmentsOnBottomRight = "888";
 
             if (mLetterSpacing > 0) {
@@ -512,21 +518,30 @@ public class LEDWatchFace extends CanvasWatchFaceService {
                 canvas.drawRect(0, 0, bounds.width(), bounds.height(), mBackgroundPaint);
             }
 
-            IntentFilter ifilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
-            Intent batteryStatus = LEDWatchFace.this.registerReceiver(null, ifilter);
+            int batteryPercentage = 0;
+            if (mShowBatteryLevel) {
+                IntentFilter ifilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
+                Intent batteryStatus = LEDWatchFace.this.registerReceiver(null, ifilter);
 
-            int batteryLevel = batteryStatus.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
-            int batteryScale = batteryStatus.getIntExtra(BatteryManager.EXTRA_SCALE, -1);
-            int batteryPercentage = Math.round(batteryLevel * 100f / batteryScale);
+                int batteryLevel = batteryStatus.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
+                int batteryScale = batteryStatus.getIntExtra(BatteryManager.EXTRA_SCALE, -1);
+                batteryPercentage = Math.round(batteryLevel * 100f / batteryScale);
+            }
 
             long now = System.currentTimeMillis();
             mCalendar.setTimeInMillis(now);
+
+            if (mEasterEgg105850) {
+                mCalendar.set(2013, 5, 30, 10, 58, 50);
+            }
 
             int hour12 = mCalendar.get(Calendar.HOUR);
             int hour24 = mCalendar.get(Calendar.HOUR_OF_DAY);
             int minute = mCalendar.get(Calendar.MINUTE);
             int second = mCalendar.get(Calendar.SECOND);
             int millis = mCalendar.get(Calendar.MILLISECOND);
+            int dayOfWeek  = mCalendar.get(Calendar.DAY_OF_WEEK);
+            int dayOfMonth = mCalendar.get(Calendar.DAY_OF_MONTH);
 
             boolean isPM = mCalendar.get(Calendar.AM_PM) == Calendar.PM;
             boolean blink = millis >= 400;
@@ -556,6 +571,12 @@ public class LEDWatchFace extends CanvasWatchFaceService {
                 is24Hour = m24Hour;
             }
 
+            if (mEasterEgg105850) {
+                batteryPercentage = 89;
+                blink = false;
+                is24Hour = true;
+            }
+
             // time of day
             if (is24Hour) {
                 textMiddle = String.format(Locale.getDefault(), "%02d:%02d", hour24, minute);
@@ -573,52 +594,55 @@ public class LEDWatchFace extends CanvasWatchFaceService {
                 }
             }
 
-            // blinking colon?
-            if (blink && !mAmbient) {
+            if (mBlinkingColon && blink && !mAmbient) {
                 textMiddle = textMiddle.replace(':', ' ');
             }
 
             // seconds
-            if (!mAmbient) {
+            if (mShowSeconds && !mAmbient) {
                 textBottomRight = String.format(Locale.getDefault(), "!%02d", second);
             }
 
-            // battery percentage
-            if (batteryPercentage < 0) {
-                textBottomLeft = "???";
-            } else if (batteryPercentage < 100) {
-                textBottomLeft = String.format(Locale.getDefault(), "%2d%%", batteryPercentage);
-            } else if (batteryPercentage < 1000) {
-                textBottomLeft = String.format(Locale.getDefault(), "%3d", batteryPercentage);
-            } else {
-                textBottomLeft = "???";
+            if (mShowBatteryLevel) {
+                if (batteryPercentage < 0) {
+                    textBottomLeft = "!???";
+                } else if (batteryPercentage < 100) {
+                    textBottomLeft = String.format(Locale.getDefault(), "!%2d%%", batteryPercentage);
+                    textBottomLeft = textBottomLeft.replaceAll(" ", "!"); // "! 9%" => "!!9%"
+                } else if (batteryPercentage == 100) {
+                    textBottomLeft = String.format(Locale.getDefault(), "%3d%%", batteryPercentage);
+                } else {
+                    textBottomLeft = "!???";
+                }
             }
 
-            // day of week
-            textTopLeft = mCalendar.getDisplayName(Calendar.DAY_OF_WEEK, Calendar.SHORT, Locale.getDefault());
-            if (textTopLeft.length() > 3) {
-                textTopLeft = textTopLeft.substring(0, 3);
+            if (mShowDayOfWeek) {
+                textTopLeft = mCalendar.getDisplayName(Calendar.DAY_OF_WEEK, Calendar.SHORT, Locale.getDefault());
+                if (textTopLeft.length() > 3) {
+                    textTopLeft = textTopLeft.substring(0, 3);
+                }
+                textTopLeft = textTopLeft.toUpperCase();
             }
-            textTopLeft = textTopLeft.toUpperCase();
 
-            // day of month
-            textTopRight = String.format(Locale.getDefault(), "!%2d", mCalendar.get(Calendar.DAY_OF_MONTH));
-            textTopRight = textTopRight.replace(" ", "!");
+            if (mShowDayOfMonth) {
+                textTopRight = String.format(Locale.getDefault(), "!%2d", dayOfMonth);
+                textTopRight = textTopRight.replace(" ", "!");
+            }
 
             if (mLetterSpacing > 0) {
                 if (textMiddle != null) {
-                    textMiddle      = addLetterSpacing(textMiddle,      mLetterSpacing, TEXT_ALIGN_CENTER);
+                    textMiddle = addLetterSpacing(textMiddle, mLetterSpacing, TEXT_ALIGN_CENTER);
                 }
-                if (textTopLeft != null) {
-                    textTopLeft     = addLetterSpacing(textTopLeft,     mLetterSpacing, TEXT_ALIGN_RIGHT);
+                if (mShowDayOfWeek && textTopLeft != null) {
+                    textTopLeft = addLetterSpacing(textTopLeft, mLetterSpacing, TEXT_ALIGN_RIGHT);
                 }
-                if (textTopRight != null) {
-                    textTopRight    = addLetterSpacing(textTopRight,    mLetterSpacing, TEXT_ALIGN_LEFT);
+                if (mShowDayOfMonth && textTopRight != null) {
+                    textTopRight = addLetterSpacing(textTopRight, mLetterSpacing, TEXT_ALIGN_LEFT);
                 }
-                if (textBottomLeft != null) {
-                    textBottomLeft  = addLetterSpacing(textBottomLeft,  mLetterSpacing, TEXT_ALIGN_RIGHT);
+                if (mShowBatteryLevel && textBottomLeft != null) {
+                    textBottomLeft = addLetterSpacing(textBottomLeft, mLetterSpacing, TEXT_ALIGN_RIGHT);
                 }
-                if (textBottomRight != null) {
+                if (mShowSeconds && textBottomRight != null) {
                     textBottomRight = addLetterSpacing(textBottomRight, mLetterSpacing, TEXT_ALIGN_LEFT);
                 }
             }
@@ -627,19 +651,19 @@ public class LEDWatchFace extends CanvasWatchFaceService {
                 textMiddle = textMiddle.replaceAll(",", "");
                 canvas.drawText(textMiddle, mXOffsetMiddle, mYOffsetMiddle, mTextPaintMiddle);
             }
-            if (textTopLeft != null) {
+            if (mShowDayOfWeek && textTopLeft != null) {
                 textTopLeft = textTopLeft.replaceAll(",", "");
                 canvas.drawText(textTopLeft, mXOffsetTopLeft, mYOffsetTopLeft, mTextPaintTopLeft);
             }
-            if (textTopRight != null) {
+            if (mShowDayOfMonth && textTopRight != null) {
                 textTopRight = textTopRight.replaceAll(",", "");
                 canvas.drawText(textTopRight, mXOffsetTopRight, mYOffsetTopRight, mTextPaintTopRight);
             }
-            if (textBottomLeft != null) {
+            if (mShowBatteryLevel && textBottomLeft != null) {
                 textBottomLeft = textBottomLeft.replaceAll(",", "");
                 canvas.drawText(textBottomLeft, mXOffsetBottomLeft, mYOffsetBottomLeft, mTextPaintBottomLeft);
             }
-            if (textBottomRight != null) {
+            if (mShowSeconds && textBottomRight != null) {
                 textBottomRight = textBottomRight.replaceAll(",", "");
                 canvas.drawText(textBottomRight, mXOffsetBottomRight, mYOffsetBottomRight, mTextPaintBottomRight);
             }
