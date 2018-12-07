@@ -168,8 +168,8 @@ public class LEDWatchFace extends CanvasWatchFaceService {
 
         private float mLineSpacing; // device pixels?  or small/medium/large enum?
         private int mSegmentsAlpha; // fraction?  or integer?
-        private int mLetterSpacing = 1; // integer 0 to 3, 0 is good default
-        private float mSmallerTextSizeRatio = 0.6f; // fraction, 0.5 is good default
+        private int mLetterSpacing = 0; // integer 0 to 3, 0 is good default
+        private float mSmallerTextSizeRatio = 0.5f; // fraction, 0.5 is good default
 
         private int mFontStyle  = FONT_STYLE_ITALIC;            // normal or italic
         private int mFontWeight = FONT_WEIGHT_NORMAL;           // light, normal, or bold
