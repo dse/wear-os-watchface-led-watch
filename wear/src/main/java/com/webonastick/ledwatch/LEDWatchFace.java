@@ -189,9 +189,11 @@ public class LEDWatchFace extends CanvasWatchFaceService {
         public void onCreate(SurfaceHolder holder) {
             super.onCreate(holder);
 
+
+
             WatchFaceStyle.Builder styleBuilder = new WatchFaceStyle.Builder(LEDWatchFace.this);
             styleBuilder.setAcceptsTapEvents(true);
-            styleBuilder.setStatusBarGravity(Gravity.CENTER_HORIZONTAL | Gravity.TOP);
+            styleBuilder.setStatusBarGravity(Gravity.RIGHT | Gravity.TOP);
             // styleBuilder.setHotwordIndicatorGravity(Gravity.CENTER_HORIZONTAL | Gravity.BOTTOM);
             WatchFaceStyle style = styleBuilder.build();
             setWatchFaceStyle(style);
