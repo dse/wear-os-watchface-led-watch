@@ -13,6 +13,8 @@ There's no configuration activity yet.
 
 There's no Android app yet.
 
+It's not yet on the Google Play Store.  Don't ask me when.
+
 ## Notes
 
 ### Functional Preferences
