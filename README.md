@@ -1,7 +1,7 @@
 # LEDWatch
 
 ![LED Watch face on square devices](wear/src/main/res/drawable-nodpi/preview_digital.png)
-![LED Watch face on an actual watch](images/action-shot-400x400.jpg)
+![LED Watch face on an actual watch](images/action-shot-320x320.jpg)
 
 It's an LED watch face.
 
