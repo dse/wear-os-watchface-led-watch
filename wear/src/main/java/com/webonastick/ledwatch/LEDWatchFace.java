@@ -43,12 +43,14 @@ public class LEDWatchFace extends CanvasWatchFaceService {
 
     private static final String TAG = "LEDWatchFace";
 
-    private static final int FOREGROUND_COLOR_GREENSCREEN = 1;
-    private static final int FOREGROUND_COLOR_AMBER       = 2;
-    private static final int FOREGROUND_COLOR_RED         = 3;
-    private static final int FOREGROUND_COLOR_WHITE       = 4;
-    private static final int FOREGROUND_COLOR_YELLOW      = 5;
-    private static final int FOREGROUND_COLOR_BLUE        = 6;
+    private static final int FOREGROUND_COLOR_GREENSCREEN     = 1;
+    private static final int FOREGROUND_COLOR_AMBER           = 2;
+    private static final int FOREGROUND_COLOR_RED             = 3;
+    private static final int FOREGROUND_COLOR_WHITE           = 4;
+    private static final int FOREGROUND_COLOR_YELLOW          = 5;
+    private static final int FOREGROUND_COLOR_BLUE            = 6;
+    private static final int FOREGROUND_COLOR_ORANGE          = 7;
+    private static final int FOREGROUND_COLOR_VINTAGE_LED_RED = 8;
 
     private static final int FONT_STYLE_NORMAL = 1;
     private static final int FONT_STYLE_ITALIC = 2;
@@ -185,11 +187,17 @@ public class LEDWatchFace extends CanvasWatchFaceService {
 
         private boolean mEasterEgg105850 = false; // ;-)
 
+        private boolean mVintageMode = true;
+        private boolean m100SansPercent = true;
+
+        private int dpToPixels(float dp) {
+            final float scale = getResources().getDisplayMetrics().density;
+            return (int)(dp * scale + 0.5f);
+        }
+
         @Override
         public void onCreate(SurfaceHolder holder) {
             super.onCreate(holder);
-
-
 
             WatchFaceStyle.Builder styleBuilder = new WatchFaceStyle.Builder(LEDWatchFace.this);
             styleBuilder.setAcceptsTapEvents(true);
@@ -204,6 +212,15 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             mLineSpacing = resources.getDimension(R.dimen.line_spacing);
 
             mSegmentsAlpha = resources.getInteger(R.integer.segments_alpha_opacity);
+
+            if (mVintageMode) {
+                mFontStyle = FONT_STYLE_ITALIC;
+                mFontWeight = FONT_WEIGHT_LIGHT;
+                mFontSize = FONT_SIZE_REGULAR;
+                mForegroundColor = FOREGROUND_COLOR_VINTAGE_LED_RED;
+                mLetterSpacing = 2;
+                mLineSpacing = dpToPixels(16);
+            }
 
             mBackgroundPaint = new Paint();
             mBackgroundPaint.setColor(ContextCompat.getColor(getApplicationContext(), R.color.background));
@@ -414,6 +431,12 @@ public class LEDWatchFace extends CanvasWatchFaceService {
                     case FOREGROUND_COLOR_BLUE:
                         textColor = ContextCompat.getColor(getApplicationContext(), R.color.foreground_color_blue);
                         break;
+                    case FOREGROUND_COLOR_ORANGE:
+                        textColor = ContextCompat.getColor(getApplicationContext(), R.color.foreground_color_orange);
+                        break;
+                    case FOREGROUND_COLOR_VINTAGE_LED_RED:
+                        textColor = ContextCompat.getColor(getApplicationContext(), R.color.foreground_color_vintage_led_red);
+                        break;
                     default:
                         textColor = ContextCompat.getColor(getApplicationContext(), R.color.digital_text);
                         break;
@@ -461,8 +484,12 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             String allSegmentsOnMiddle = ".88:88";
             String allSegmentsOnTopLeft = "~~~";
             String allSegmentsOnTopRight = "888";
-            String allSegmentsOnBottomLeft = "1~~~";
+            String allSegmentsOnBottomLeft = "1~~~"; // "0%" to "100%"
             String allSegmentsOnBottomRight = "888";
+
+            if (m100SansPercent) {
+                allSegmentsOnBottomLeft = "~~~"; // "0%" to "99%" then "100"
+            }
 
             if (mLetterSpacing > 0) {
                 allSegmentsOnMiddle      = addLetterSpacing(allSegmentsOnMiddle,      mLetterSpacing, TEXT_ALIGN_CENTER);
@@ -607,14 +634,31 @@ public class LEDWatchFace extends CanvasWatchFaceService {
 
             if (mShowBatteryLevel) {
                 if (batteryPercentage < 0) {
-                    textBottomLeft = "!???";
+                    if (m100SansPercent) {
+                        textBottomLeft = "???";
+                    } else {
+                        textBottomLeft = "!???";
+                    }
                 } else if (batteryPercentage < 100) {
-                    textBottomLeft = String.format(Locale.getDefault(), "!%2d%%", batteryPercentage);
-                    textBottomLeft = textBottomLeft.replaceAll(" ", "!"); // "! 9%" => "!!9%"
+                    if (m100SansPercent) {
+                        textBottomLeft = String.format(Locale.getDefault(), "%2d%%", batteryPercentage);
+                        textBottomLeft = textBottomLeft.replaceAll(" ", "!"); // " 9%" => "!9%"
+                    } else {
+                        textBottomLeft = String.format(Locale.getDefault(), "!%2d%%", batteryPercentage);
+                        textBottomLeft = textBottomLeft.replaceAll(" ", "!"); // "! 9%" => "!!9%"
+                    }
                 } else if (batteryPercentage == 100) {
-                    textBottomLeft = String.format(Locale.getDefault(), "%3d%%", batteryPercentage);
+                    if (m100SansPercent) {
+                        textBottomLeft = String.format(Locale.getDefault(), "%3d", batteryPercentage);
+                    } else {
+                        textBottomLeft = String.format(Locale.getDefault(), "%3d%%", batteryPercentage);
+                    }
                 } else {
-                    textBottomLeft = "!???";
+                    if (m100SansPercent) {
+                        textBottomLeft = "???";
+                    } else {
+                        textBottomLeft = "!???";
+                    }
                 }
             }
 
