@@ -3,6 +3,8 @@
 ![LED Watch face on square devices](wear/src/main/res/drawable-nodpi/preview_digital.png)
 ![LED Watch face on an actual watch](images/action-shot-320x320.jpg)
 
+![Another configuration](images/configuration-2.png)
+
 It's an LED watch face.
 
 It uses the [DSEG fonts](https://www.keshikan.net/fonts-e.html).
