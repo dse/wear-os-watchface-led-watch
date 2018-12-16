@@ -1,7 +1,6 @@
 # LEDWatch
 
 ![LED Watch face on square devices](wear/src/main/res/drawable-nodpi/preview_digital.png)
-
 ![LED Watch face on round devices](wear/src/main/res/drawable-nodpi/preview_digital_circular.png)
 
 It's an LED watch face.
