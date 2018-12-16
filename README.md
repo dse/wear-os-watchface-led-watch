@@ -6,6 +6,8 @@
 
 It's an LED watch face.
 
+It uses the [DSEG fonts](https://www.keshikan.net/fonts-e.html).
+
 It's in early stages right now.
 
 There's no configuration activity yet.
