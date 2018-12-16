@@ -6,6 +6,8 @@ It's in early stages right now.
 
 There's no configuration activity yet.
 
+There's no Android app yet.
+
 ## Notes
 
 ### Functional Preferences
