@@ -4,8 +4,9 @@
 ![LED Watch face on an actual watch](images/action-shot-320x320.jpg)
 
 ![Another configuration](images/configuration-2.png)
+![Another configuration](images/configuration-3.png)
 
-It's an LED watch face.
+It's an LED- or LCD-looking watch face.
 
 It uses the [DSEG fonts](https://www.keshikan.net/fonts-e.html).
 

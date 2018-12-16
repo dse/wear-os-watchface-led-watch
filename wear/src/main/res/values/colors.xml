@@ -5,6 +5,8 @@
     <color name="ambient_digital_text">#ffffff</color>
     <integer name="segments_alpha_opacity">51</integer>
 
+    <color name="background_color_black">#000000</color>
+
     <color name="foreground_color_greenscreen">#57ff57</color>
     <color name="foreground_color_amber">#eacf4c</color>
     <color name="foreground_color_vintage_led_red">#ff6699</color>
@@ -13,4 +15,13 @@
     <color name="foreground_color_white">#ffffff</color>
     <color name="foreground_color_yellow">#ffff00</color>
     <color name="foreground_color_blue">#00ccff</color>
+
+    <color name="background_color_orange_lcd">#fb7c00</color>
+    <color name="background_color_green_lcd">#87ad34</color>
+    <color name="background_color_green_lcd_2">#b9e200</color>
+    <color name="background_color_gray_lcd">#cccccc</color>
+
+    <color name="foreground_color_dark_gray_lcd">#222222</color>
+    <color name="foreground_color_black_lcd">#000000</color>
+
 </resources>

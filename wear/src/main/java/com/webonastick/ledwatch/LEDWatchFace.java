@@ -51,6 +51,14 @@ public class LEDWatchFace extends CanvasWatchFaceService {
     private static final int FOREGROUND_COLOR_BLUE            = 6;
     private static final int FOREGROUND_COLOR_ORANGE          = 7;
     private static final int FOREGROUND_COLOR_VINTAGE_LED_RED = 8;
+    private static final int FOREGROUND_COLOR_DARK_GRAY_LCD   = 9;
+    private static final int FOREGROUND_COLOR_BLACK_LCD       = 10;
+
+    private static final int BACKGROUND_COLOR_BLACK           = 1;
+    private static final int BACKGROUND_COLOR_ORANGE_LCD      = 2;
+    private static final int BACKGROUND_COLOR_GREEN_LCD       = 3;
+    private static final int BACKGROUND_COLOR_GREEN_LCD_2     = 4;
+    private static final int BACKGROUND_COLOR_GRAY_LCD        = 5;
 
     private static final int FONT_STYLE_NORMAL = 1;
     private static final int FONT_STYLE_ITALIC = 2;
@@ -123,7 +131,6 @@ public class LEDWatchFace extends CanvasWatchFaceService {
         private boolean mRegisteredTimeZoneReceiver = false;
 
         private Paint mBackgroundPaint;
-        private Paint mBackgroundBitmapPaint;
 
         private float mXOffsetMiddle;
         private float mYOffsetMiddle;
@@ -165,8 +172,8 @@ public class LEDWatchFace extends CanvasWatchFaceService {
 
         /* CONFIGURABLE OPTIONS */
 
-        private float mLineSpacing; // device pixels?  or small/medium/large enum?
-        private int mSegmentsAlpha; // fraction?  or integer?
+        private float mLineSpacing = 0f; // device pixels?  or small/medium/large enum?
+        private int mSegmentsAlpha = 0; // fraction?  or integer?
         private int mLetterSpacing = 0; // integer 0 to 3, 0 is good default
         private float mSmallerTextSizeRatio = 0.5f; // fraction, 0.5 is good default
 
@@ -175,6 +182,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
         private int mFontFamily = FONT_FAMILY_DSEG_CLASSIC;     // classic or modern
         private int mFontSize   = FONT_SIZE_REGULAR;            // regular or mini variant
         private int mForegroundColor = FOREGROUND_COLOR_YELLOW; // a few selections
+        private int mBackgroundColor = BACKGROUND_COLOR_BLACK;  // a few selections
 
         private Boolean m24Hour = null;
 
@@ -187,12 +195,72 @@ public class LEDWatchFace extends CanvasWatchFaceService {
 
         private boolean mEasterEgg105850 = false; // ;-)
 
-        private boolean mVintageMode = true;
+        private boolean mVintageMode = false;
         private boolean m100SansPercent = true;
+        private boolean mLCDMode = true;
 
         private int dpToPixels(float dp) {
             final float scale = getResources().getDisplayMetrics().density;
             return (int)(dp * scale + 0.5f);
+        }
+        
+        private int getRBackgroundColor() {
+            int result = R.color.background;
+            switch (mBackgroundColor) {
+                case BACKGROUND_COLOR_BLACK:
+                    result = R.color.background_color_black;
+                    break;
+                case BACKGROUND_COLOR_GRAY_LCD:
+                    result = R.color.background_color_gray_lcd;
+                    break;
+                case BACKGROUND_COLOR_ORANGE_LCD:
+                    result = R.color.background_color_orange_lcd;
+                    break;
+                case BACKGROUND_COLOR_GREEN_LCD:
+                    result = R.color.background_color_green_lcd;
+                    break;
+                case BACKGROUND_COLOR_GREEN_LCD_2:
+                    result = R.color.background_color_green_lcd_2;
+                    break;
+            }
+            return result;
+        }
+        
+        private int getRForegroundColor() {
+            int result = R.color.digital_text;
+            switch (mForegroundColor) {
+                case FOREGROUND_COLOR_AMBER:
+                    result =  R.color.foreground_color_amber;
+                    break;
+                case FOREGROUND_COLOR_GREENSCREEN:
+                    result =  R.color.foreground_color_greenscreen;
+                    break;
+                case FOREGROUND_COLOR_RED:
+                    result =  R.color.foreground_color_red;
+                    break;
+                case FOREGROUND_COLOR_WHITE:
+                    result =  R.color.foreground_color_white;
+                    break;
+                case FOREGROUND_COLOR_YELLOW:
+                    result =  R.color.foreground_color_yellow;
+                    break;
+                case FOREGROUND_COLOR_BLUE:
+                    result =  R.color.foreground_color_blue;
+                    break;
+                case FOREGROUND_COLOR_ORANGE:
+                    result =  R.color.foreground_color_orange;
+                    break;
+                case FOREGROUND_COLOR_VINTAGE_LED_RED:
+                    result =  R.color.foreground_color_vintage_led_red;
+                    break;
+                case FOREGROUND_COLOR_DARK_GRAY_LCD:
+                    result =  R.color.foreground_color_dark_gray_lcd;
+                    break;
+                case FOREGROUND_COLOR_BLACK_LCD:
+                    result =  R.color.foreground_color_black_lcd;
+                    break;
+            }
+            return result;
         }
 
         @Override
@@ -222,8 +290,20 @@ public class LEDWatchFace extends CanvasWatchFaceService {
                 mLineSpacing = dpToPixels(16);
             }
 
+            if (mLCDMode) {
+                mFontStyle = FONT_STYLE_ITALIC;
+                mFontWeight = FONT_WEIGHT_NORMAL;
+                mFontSize = FONT_SIZE_REGULAR;
+                mForegroundColor = FOREGROUND_COLOR_DARK_GRAY_LCD;
+                mBackgroundColor = BACKGROUND_COLOR_GRAY_LCD;
+                mLetterSpacing = 0;
+                mSegmentsAlpha = 25;
+            }
+
             mBackgroundPaint = new Paint();
-            mBackgroundPaint.setColor(ContextCompat.getColor(getApplicationContext(), R.color.background));
+            
+            int rBackgroundColor = getRBackgroundColor();
+            mBackgroundPaint.setColor(ContextCompat.getColor(getApplicationContext(), rBackgroundColor));
 
             resources = LEDWatchFace.this.getResources();
             mSevenSegmentTypeface = Typeface.createFromAsset(
@@ -411,37 +491,8 @@ public class LEDWatchFace extends CanvasWatchFaceService {
                 mTextPaintBottomRight.setAntiAlias(false);
                 mTextPaintBottomRight.setColor(ContextCompat.getColor(getApplicationContext(), R.color.ambient_digital_text));
             } else {
-                int textColor;
-                switch (mForegroundColor) {
-                    case FOREGROUND_COLOR_AMBER:
-                        textColor = ContextCompat.getColor(getApplicationContext(), R.color.foreground_color_amber);
-                        break;
-                    case FOREGROUND_COLOR_GREENSCREEN:
-                        textColor = ContextCompat.getColor(getApplicationContext(), R.color.foreground_color_greenscreen);
-                        break;
-                    case FOREGROUND_COLOR_RED:
-                        textColor = ContextCompat.getColor(getApplicationContext(), R.color.foreground_color_red);
-                        break;
-                    case FOREGROUND_COLOR_WHITE:
-                        textColor = ContextCompat.getColor(getApplicationContext(), R.color.foreground_color_white);
-                        break;
-                    case FOREGROUND_COLOR_YELLOW:
-                        textColor = ContextCompat.getColor(getApplicationContext(), R.color.foreground_color_yellow);
-                        break;
-                    case FOREGROUND_COLOR_BLUE:
-                        textColor = ContextCompat.getColor(getApplicationContext(), R.color.foreground_color_blue);
-                        break;
-                    case FOREGROUND_COLOR_ORANGE:
-                        textColor = ContextCompat.getColor(getApplicationContext(), R.color.foreground_color_orange);
-                        break;
-                    case FOREGROUND_COLOR_VINTAGE_LED_RED:
-                        textColor = ContextCompat.getColor(getApplicationContext(), R.color.foreground_color_vintage_led_red);
-                        break;
-                    default:
-                        textColor = ContextCompat.getColor(getApplicationContext(), R.color.digital_text);
-                        break;
-                }
-
+                int rForegroundColor = getRForegroundColor();
+                int textColor = ContextCompat.getColor(getApplicationContext(), rForegroundColor);
                 mTextPaintMiddle.setAntiAlias(true);
                 mTextPaintMiddle.setColor(textColor);
                 mTextPaintTopLeft.setAntiAlias(true);
@@ -499,25 +550,23 @@ public class LEDWatchFace extends CanvasWatchFaceService {
                 allSegmentsOnBottomRight = addLetterSpacing(allSegmentsOnBottomRight, mLetterSpacing, TEXT_ALIGN_LEFT);
             }
 
-            if (!mAmbient && mBackgroundBitmap == null && mSegmentsAlpha > 8) {
-                mBackgroundBitmapPaint = new Paint();
-                mBackgroundBitmapPaint.setColor(Color.BLACK);
-
+            if (!mAmbient && mBackgroundBitmap == null && mSegmentsAlpha > 0) {
                 Canvas backgroundCanvas = new Canvas();
                 mBackgroundBitmap = Bitmap.createBitmap(canvas.getWidth(), canvas.getHeight(), Bitmap.Config.ARGB_8888);
                 backgroundCanvas.setBitmap(mBackgroundBitmap);
                 backgroundCanvas.drawRect(0, 0, bounds.width(), bounds.height(), mBackgroundPaint);
 
+                int rForegroundColor = getRForegroundColor();
                 mTextPaintMiddle.setAntiAlias(true);
-                mTextPaintMiddle.setColor(ContextCompat.getColor(getApplicationContext(), R.color.digital_text));
+                mTextPaintMiddle.setColor(ContextCompat.getColor(getApplicationContext(), rForegroundColor));
                 mTextPaintTopLeft.setAntiAlias(true);
-                mTextPaintTopLeft.setColor(ContextCompat.getColor(getApplicationContext(), R.color.digital_text));
+                mTextPaintTopLeft.setColor(ContextCompat.getColor(getApplicationContext(), rForegroundColor));
                 mTextPaintTopRight.setAntiAlias(true);
-                mTextPaintTopRight.setColor(ContextCompat.getColor(getApplicationContext(), R.color.digital_text));
+                mTextPaintTopRight.setColor(ContextCompat.getColor(getApplicationContext(), rForegroundColor));
                 mTextPaintBottomLeft.setAntiAlias(true);
-                mTextPaintBottomLeft.setColor(ContextCompat.getColor(getApplicationContext(), R.color.digital_text));
+                mTextPaintBottomLeft.setColor(ContextCompat.getColor(getApplicationContext(), rForegroundColor));
                 mTextPaintBottomRight.setAntiAlias(true);
-                mTextPaintBottomRight.setColor(ContextCompat.getColor(getApplicationContext(), R.color.digital_text));
+                mTextPaintBottomRight.setColor(ContextCompat.getColor(getApplicationContext(), rForegroundColor));
                 mTextPaintMiddle.setAlpha(mSegmentsAlpha);
                 mTextPaintTopLeft.setAlpha(mSegmentsAlpha);
                 mTextPaintTopRight.setAlpha(mSegmentsAlpha);
@@ -541,7 +590,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             // Draw the background.
             if (mAmbient) {
                 canvas.drawColor(Color.BLACK);
-            } else if (!mAmbient && mBackgroundBitmap != null && mSegmentsAlpha > 8) {
+            } else if (!mAmbient && mBackgroundBitmap != null && mSegmentsAlpha > 0) {
                 canvas.drawBitmap(mBackgroundBitmap, 0, 0, null);
             } else {
                 canvas.drawRect(0, 0, bounds.width(), bounds.height(), mBackgroundPaint);
