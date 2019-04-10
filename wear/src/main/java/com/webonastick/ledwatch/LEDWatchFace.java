@@ -197,7 +197,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
 
         private boolean mVintageMode = false;
         private boolean m100SansPercent = true;
-        private boolean mLCDMode = true;
+        private boolean mLCDMode = false;
 
         private int dpToPixels(float dp) {
             final float scale = getResources().getDisplayMetrics().density;
