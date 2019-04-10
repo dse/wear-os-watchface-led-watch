@@ -31,6 +31,9 @@
             <meta-data
                 android:name="com.google.android.wearable.watchface.preview_circular"
                 android:resource="@drawable/preview_digital_circular" />
+
+            <!-- https://developer.android.com/training/wearables/watch-faces/configuration -->
+            <!-- Specify an intent for configuration activities. -->
             <!--
             <meta-data
                 android:name="com.google.android.wearable.watchface.wearableConfigurationAction"
@@ -48,6 +51,8 @@
             android:name="com.google.android.gms.version"
             android:value="@integer/google_play_services_version" />
 
+        <!-- https://developer.android.com/training/wearables/watch-faces/configuration -->
+        <!-- Create a wearable configuration activity. -->
         <!--
         <activity
             android:name=".LEDWatchFaceWearableConfigActivity"
@@ -59,6 +64,15 @@
             </intent-filter>
         </activity>
         -->
+
+        <!--
+        In your configuration activity, build a UI that provides options to customize all the configurable elements of your watch face. When users make a selection, use the Wearable Data Layer API to communicate the configuration change to the watch face activity.
+        https://developer.android.com/training/wearables/data-layer/index.html
+
+        For more details, see the DigitalWatchFaceCompanionConfigActivity class in the WatchFace sample.
+        https://developer.android.com/samples/WatchFace/index.html
+        -->
+
     </application>
 
 </manifest>
