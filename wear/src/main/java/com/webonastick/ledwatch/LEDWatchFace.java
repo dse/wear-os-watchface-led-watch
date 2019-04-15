@@ -22,6 +22,7 @@ import android.support.wearable.watchface.WatchFaceStyle;
 import android.text.format.DateFormat;
 import android.util.DisplayMetrics;
 import android.view.Gravity;
+import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.WindowInsets;
 import android.util.Log;
@@ -526,8 +527,6 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             invalidate();
         }
 
-        Bitmap canvasBitmap;
-
         @Override
         public void onDraw(Canvas canvas, Rect bounds) {
 
@@ -582,9 +581,6 @@ public class LEDWatchFace extends CanvasWatchFaceService {
                 mTextPaintTopRight.setAlpha(255);
                 mTextPaintBottomLeft.setAlpha(255);
                 mTextPaintBottomRight.setAlpha(255);
-
-                canvasBitmap = Bitmap.createBitmap(canvas.getWidth(), canvas.getHeight(), Bitmap.Config.ARGB_8888);
-                canvas.setBitmap(canvasBitmap);
             }
 
             // Draw the background.
