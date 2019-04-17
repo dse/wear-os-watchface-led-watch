@@ -1,4 +1,6 @@
 <resources>
     <string name="app_name">LED Watch</string>
     <string name="message">Watch face tapped</string>
+    <string name="preference_file_key">preferences</string>
+    <string name="theme_default_key">theme</string>
 </resources>

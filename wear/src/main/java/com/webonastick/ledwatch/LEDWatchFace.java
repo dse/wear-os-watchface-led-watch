@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
@@ -16,16 +17,14 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.provider.Settings;
-import android.support.v4.content.ContextCompat;
 import android.support.wearable.watchface.CanvasWatchFaceService;
 import android.support.wearable.watchface.WatchFaceStyle;
 import android.text.format.DateFormat;
 import android.util.DisplayMetrics;
+import android.util.Log;
 import android.view.Gravity;
-import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.WindowInsets;
-import android.util.Log;
 
 import java.lang.ref.WeakReference;
 import java.util.Calendar;
@@ -33,50 +32,163 @@ import java.util.Locale;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 
+
 /**
  * A digital watch face with seconds, battery, and date.
  * The colon blinks.
- *
+ * <p>
  * Does not display seconds or blink the colon in ambient mode, and
  * draws text without anti-aliasing.
  */
 public class LEDWatchFace extends CanvasWatchFaceService {
 
+    public enum LEDWatchThemeMode {
+        LED,
+        LCD,
+        VINTAGE_LED;
+    }
+
+    public enum LEDWatchTheme {
+        LED_RED(
+                LEDWatchThemeMode.LED,
+                R.color.foreground_color_red,
+                "led-red"
+        ),
+        LED_ORANGE(
+                LEDWatchThemeMode.LED,
+                R.color.foreground_color_orange,
+                "led-orange"
+        ),
+        LED_AMBER(
+                LEDWatchThemeMode.LED,
+                R.color.foreground_color_amber,
+                "led-amber"
+        ),
+        LED_YELLOW(
+                LEDWatchThemeMode.LED,
+                R.color.foreground_color_yellow,
+                "led-yellow"
+        ),
+        LED_GREEN(
+                LEDWatchThemeMode.LED,
+                R.color.foreground_color_green,
+                "led-green"
+        ),
+        LED_BLUE(
+                LEDWatchThemeMode.LED,
+                R.color.foreground_color_blue,
+                "led-blue"
+        ),
+        LED_WHITE(
+                LEDWatchThemeMode.LED,
+                R.color.foreground_color_white,
+                "led-white"
+        ),
+        LCD_ORANGE(
+                LEDWatchThemeMode.LCD,
+                R.color.background_color_orange_lcd,
+                "lcd-orange"
+        ),
+        LCD_GREEN(
+                LEDWatchThemeMode.LCD,
+                R.color.background_color_green_lcd,
+                "lcd-green"
+        ),
+        LCD_GREEN_2(
+                LEDWatchThemeMode.LCD,
+                R.color.background_color_green_lcd_2,
+                "lcd-green-2"
+        ),
+        LCD_GRAY(
+                LEDWatchThemeMode.LCD,
+                R.color.background_color_gray_lcd,
+                "lcd-gray"
+        ),
+        LCD_WHITE(
+                LEDWatchThemeMode.LCD,
+                R.color.background_color_white_lcd,
+                "lcd-white"
+        ),
+        VINTAGE_LED_RED(
+                LEDWatchThemeMode.VINTAGE_LED,
+                R.color.foreground_color_vintage_led_red,
+                "vintage-led-red"
+        ),
+        VINTAGE_LED_GREEN(
+                LEDWatchThemeMode.VINTAGE_LED,
+                R.color.foreground_color_vintage_led_green,
+                "vintage-led-green"
+        ),
+        VINTAGE_LED_BLUE(
+                LEDWatchThemeMode.VINTAGE_LED,
+                R.color.foreground_color_vintage_led_blue,
+                "vintage-led-blue"
+        ),
+        VINTAGE_LED_WHITE(
+                LEDWatchThemeMode.VINTAGE_LED,
+                R.color.foreground_color_vintage_led_white,
+                "vintage-led-white"
+        );
+        private final LEDWatchThemeMode themeMode;
+        private final int color;
+        private final String themeName;
+
+        LEDWatchTheme(LEDWatchThemeMode themeMode, int color, String themeName) {
+            this.themeMode = themeMode;
+            this.color = color;
+            this.themeName = themeName;
+        }
+
+        public LEDWatchThemeMode themeMode() {
+            return themeMode;
+        }
+
+        public int color() {
+            return color;
+        }
+
+        public String themeName() {
+            return themeName;
+        }
+
+        public LEDWatchTheme nextTheme() {
+            int ordinal = this.ordinal();
+            ordinal = (ordinal + 1) % LEDWatchTheme.values().length;
+            return LEDWatchTheme.values()[ordinal];
+        }
+
+        public static LEDWatchTheme findThemeNamed(String themeName) {
+            if (themeName == null) {
+                return null;
+            }
+            for (LEDWatchTheme theme: LEDWatchTheme.values()) {
+                if (themeName.equals(theme.themeName())) {
+                    return theme;
+                }
+            }
+            return null;
+        }
+    }
+
     private static final String TAG = "LEDWatchFace";
 
-    private static final int FOREGROUND_COLOR_GREENSCREEN     = 1;
-    private static final int FOREGROUND_COLOR_AMBER           = 2;
-    private static final int FOREGROUND_COLOR_RED             = 3;
-    private static final int FOREGROUND_COLOR_WHITE           = 4;
-    private static final int FOREGROUND_COLOR_YELLOW          = 5;
-    private static final int FOREGROUND_COLOR_BLUE            = 6;
-    private static final int FOREGROUND_COLOR_ORANGE          = 7;
-    private static final int FOREGROUND_COLOR_VINTAGE_LED_RED = 8;
-    private static final int FOREGROUND_COLOR_DARK_GRAY_LCD   = 9;
-    private static final int FOREGROUND_COLOR_BLACK_LCD       = 10;
-
-    private static final int BACKGROUND_COLOR_BLACK           = 1;
-    private static final int BACKGROUND_COLOR_ORANGE_LCD      = 2;
-    private static final int BACKGROUND_COLOR_GREEN_LCD       = 3;
-    private static final int BACKGROUND_COLOR_GREEN_LCD_2     = 4;
-    private static final int BACKGROUND_COLOR_GRAY_LCD        = 5;
 
     private static final int FONT_STYLE_NORMAL = 1;
     private static final int FONT_STYLE_ITALIC = 2;
 
-    private static final int FONT_WEIGHT_LIGHT  = 1;
+    private static final int FONT_WEIGHT_LIGHT = 1;
     private static final int FONT_WEIGHT_NORMAL = 2;
-    private static final int FONT_WEIGHT_BOLD   = 3;
+    private static final int FONT_WEIGHT_BOLD = 3;
 
     private static final int FONT_FAMILY_DSEG_CLASSIC = 1;
-    private static final int FONT_FAMILY_DSEG_MODERN  = 2;
+    private static final int FONT_FAMILY_DSEG_MODERN = 2;
 
-    private static final int FONT_SIZE_MINI    = 1;
+    private static final int FONT_SIZE_MINI = 1;
     private static final int FONT_SIZE_REGULAR = 2;
 
-    private static final int TEXT_ALIGN_LEFT   = 1;
+    private static final int TEXT_ALIGN_LEFT = 1;
     private static final int TEXT_ALIGN_CENTER = 2;
-    private static final int TEXT_ALIGN_RIGHT  = 3;
+    private static final int TEXT_ALIGN_RIGHT = 3;
 
     private static final Typeface NORMAL_TYPEFACE =
             Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL);
@@ -131,7 +243,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
         };
         private boolean mRegisteredTimeZoneReceiver = false;
 
-        private Paint mBackgroundPaint;
+        private LEDWatchTheme mTheme;
 
         private float mXOffsetMiddle;
         private float mYOffsetMiddle;
@@ -144,27 +256,23 @@ public class LEDWatchFace extends CanvasWatchFaceService {
         private float mXOffsetBottomRight;
         private float mYOffsetBottomRight;
 
-        private Paint mTextPaintMiddle;
-        private Paint mTextPaintTopLeft;
-        private Paint mTextPaintTopRight;
-        private Paint mTextPaintBottomLeft;
-        private Paint mTextPaintBottomRight;
+        private Paint mBackgroundPaint = null;
+        private Paint mTextPaintMiddle = null;
+        private Paint mTextPaintTopLeft = null;
+        private Paint mTextPaintTopRight = null;
+        private Paint mTextPaintBottomLeft = null;
+        private Paint mTextPaintBottomRight = null;
 
-        /**
-         * Whether the display supports fewer bits for each color in
-         * ambient mode.  When true, many watch faces disable
-         * anti-aliasing in ambient mode.  This watch faces disables
-         * it outright.
-         */
         private boolean mLowBitAmbient;
         private boolean mBurnInProtection;
         private boolean mAmbient;
+        private boolean mIsRound;
 
         private Typeface mSevenSegmentTypeface;
         private Typeface mFourteenSegmentTypeface;
 
-        private boolean mAutoPosition = true;
-        private boolean mAutoTextSize = true;
+        private final boolean mAutoPosition = true;
+        private final boolean mAutoTextSize = true;
 
         private int mSurfaceWidth;
         private int mSurfaceHeight;
@@ -178,91 +286,141 @@ public class LEDWatchFace extends CanvasWatchFaceService {
         private int mLetterSpacing = 0; // integer 0 to 3, 0 is good default
         private float mSmallerTextSizeRatio = 0.5f; // fraction, 0.5 is good default
 
-        private int mFontStyle  = FONT_STYLE_ITALIC;            // normal or italic
+        private int mFontStyle = FONT_STYLE_ITALIC;            // normal or italic
         private int mFontWeight = FONT_WEIGHT_NORMAL;           // light, normal, or bold
         private int mFontFamily = FONT_FAMILY_DSEG_CLASSIC;     // classic or modern
-        private int mFontSize   = FONT_SIZE_REGULAR;            // regular or mini variant
-        private int mForegroundColor = FOREGROUND_COLOR_YELLOW; // a few selections
-        private int mBackgroundColor = BACKGROUND_COLOR_BLACK;  // a few selections
+        private int mFontSize = FONT_SIZE_REGULAR;            // regular or mini variant
+        private int mForegroundColor = Color.WHITE; // a few selections
+        private int mBackgroundColor = Color.BLACK;  // a few selections
 
         private Boolean m24Hour = null;
 
-        private boolean mBlinkingColon = true;
+        private final boolean mBlinkingColon = true;
+        private final boolean mShowDayOfWeek = true;
+        private final boolean mShowDayOfMonth = true;
+        private final boolean mShowBatteryLevel = true;
+        private final boolean mShowSeconds = true;
 
-        private boolean mShowDayOfWeek    = true;
-        private boolean mShowDayOfMonth   = true;
-        private boolean mShowBatteryLevel = true;
-        private boolean mShowSeconds      = true;
+        // for previews
+        private final boolean mEasterEgg105850 = false; // ;-)
 
-        private boolean mEasterEgg105850 = false; // ;-)
-
-        private boolean mVintageMode = false;
-        private boolean m100SansPercent = true;
-        private boolean mLCDMode = false;
+        // if true: show "100" then "99%"
+        // if false: extra "1" segment to show "100%"
+        private final boolean m100SansPercent = true;
 
         private int dpToPixels(float dp) {
             final float scale = getResources().getDisplayMetrics().density;
-            return (int)(dp * scale + 0.5f);
+            return (int) (dp * scale + 0.5f);
         }
-        
-        private int getRBackgroundColor() {
-            int result = R.color.background;
-            switch (mBackgroundColor) {
-                case BACKGROUND_COLOR_BLACK:
-                    result = R.color.background_color_black;
+
+        private int getBackgroundColor() {
+            Resources resources = LEDWatchFace.this.getResources();
+            if (mAmbient) {
+                return Color.BLACK;
+            }
+            switch (mTheme.themeMode()) {
+                case LED:
+                    return Color.BLACK;
+                case LCD:
+                    return resources.getInteger(mTheme.color());
+                case VINTAGE_LED:
+                    return Color.BLACK;
+                default:
+                    return Color.BLACK;
+            }
+        }
+
+        private int getForegroundColor() {
+            Resources resources = LEDWatchFace.this.getResources();
+            if (mAmbient) {
+                return Color.WHITE;
+            }
+            switch (mTheme.themeMode()) {
+                case LED:
+                    return resources.getInteger(mTheme.color());
+                case LCD:
+                    return Color.BLACK;
+                case VINTAGE_LED:
+                    return resources.getInteger(mTheme.color());
+                default:
+                    return Color.WHITE;
+            }
+        }
+
+        private void updateProperties() {
+            updateThemeBasedProperties();
+            updateColors();
+            updateTypefaces();
+            updateTextPaintProperties();
+            updateSizeBasedProperties();
+        }
+
+        private void updateThemeBasedProperties() {
+            Resources resources = LEDWatchFace.this.getResources();
+            switch (mTheme.themeMode()) {
+                case LED:
+                    mFontStyle = FONT_STYLE_ITALIC;
+                    mFontWeight = FONT_WEIGHT_NORMAL;
+                    mFontSize = FONT_SIZE_REGULAR;
+                    mFontFamily = FONT_FAMILY_DSEG_CLASSIC;
+                    mLineSpacing = resources.getDimension(R.dimen.line_spacing);
+                    mLetterSpacing = 0;
+                    mSegmentsAlpha = resources.getInteger(R.integer.segments_alpha_opacity);
+                    mSmallerTextSizeRatio = 0.5f;
                     break;
-                case BACKGROUND_COLOR_GRAY_LCD:
-                    result = R.color.background_color_gray_lcd;
+                case LCD:
+                    mFontStyle = FONT_STYLE_ITALIC;
+                    mFontWeight = FONT_WEIGHT_NORMAL;
+                    mFontSize = FONT_SIZE_REGULAR;
+                    mFontFamily = FONT_FAMILY_DSEG_CLASSIC;
+                    mLineSpacing = resources.getDimension(R.dimen.line_spacing);
+                    mLetterSpacing = 0;
+                    mSegmentsAlpha = resources.getInteger(R.integer.segments_alpha_opacity_lcd);
+                    mSmallerTextSizeRatio = 0.5f;
                     break;
-                case BACKGROUND_COLOR_ORANGE_LCD:
-                    result = R.color.background_color_orange_lcd;
+                case VINTAGE_LED:
+                    mFontStyle = FONT_STYLE_ITALIC;
+                    mFontWeight = FONT_WEIGHT_LIGHT;
+                    mFontSize = FONT_SIZE_REGULAR;
+                    mFontFamily = FONT_FAMILY_DSEG_CLASSIC;
+                    mLineSpacing = dpToPixels(16);
+                    mLetterSpacing = 2;
+                    mSegmentsAlpha = resources.getInteger(R.integer.segments_alpha_opacity_vintage_led);
+                    mSmallerTextSizeRatio = 0.625f;
                     break;
-                case BACKGROUND_COLOR_GREEN_LCD:
-                    result = R.color.background_color_green_lcd;
-                    break;
-                case BACKGROUND_COLOR_GREEN_LCD_2:
-                    result = R.color.background_color_green_lcd_2;
+                default:
+                    mFontStyle = FONT_STYLE_ITALIC;
+                    mFontWeight = FONT_WEIGHT_NORMAL;
+                    mFontSize = FONT_SIZE_REGULAR;
+                    mFontFamily = FONT_FAMILY_DSEG_CLASSIC;
+                    mLineSpacing = resources.getDimension(R.dimen.line_spacing);
+                    mLetterSpacing = 0;
+                    mSegmentsAlpha = resources.getInteger(R.integer.segments_alpha_opacity);
+                    mSmallerTextSizeRatio = 0.5f;
                     break;
             }
-            return result;
         }
-        
-        private int getRForegroundColor() {
-            int result = R.color.digital_text;
-            switch (mForegroundColor) {
-                case FOREGROUND_COLOR_AMBER:
-                    result =  R.color.foreground_color_amber;
-                    break;
-                case FOREGROUND_COLOR_GREENSCREEN:
-                    result =  R.color.foreground_color_greenscreen;
-                    break;
-                case FOREGROUND_COLOR_RED:
-                    result =  R.color.foreground_color_red;
-                    break;
-                case FOREGROUND_COLOR_WHITE:
-                    result =  R.color.foreground_color_white;
-                    break;
-                case FOREGROUND_COLOR_YELLOW:
-                    result =  R.color.foreground_color_yellow;
-                    break;
-                case FOREGROUND_COLOR_BLUE:
-                    result =  R.color.foreground_color_blue;
-                    break;
-                case FOREGROUND_COLOR_ORANGE:
-                    result =  R.color.foreground_color_orange;
-                    break;
-                case FOREGROUND_COLOR_VINTAGE_LED_RED:
-                    result =  R.color.foreground_color_vintage_led_red;
-                    break;
-                case FOREGROUND_COLOR_DARK_GRAY_LCD:
-                    result =  R.color.foreground_color_dark_gray_lcd;
-                    break;
-                case FOREGROUND_COLOR_BLACK_LCD:
-                    result =  R.color.foreground_color_black_lcd;
-                    break;
-            }
-            return result;
+
+        private void updateColors() {
+            mForegroundColor = getForegroundColor();
+            mBackgroundColor = getBackgroundColor();
+            mBackgroundPaint = new Paint();
+            mBackgroundPaint.setColor(mBackgroundColor);
         }
+
+        private void updateTypefaces() {
+            Resources resources = LEDWatchFace.this.getResources();
+            mSevenSegmentTypeface = Typeface.createFromAsset(
+                    resources.getAssets(),
+                    getFontFilename(7, mFontStyle, mFontWeight, mFontFamily, mFontSize)
+            );
+            mFourteenSegmentTypeface = Typeface.createFromAsset(
+                    resources.getAssets(),
+                    getFontFilename(14, mFontStyle, mFontWeight, mFontFamily, mFontSize)
+            );
+        }
+
+        private SharedPreferences mSharedPreferences;
 
         @Override
         public void onCreate(SurfaceHolder holder) {
@@ -275,71 +433,49 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             WatchFaceStyle style = styleBuilder.build();
             setWatchFaceStyle(style);
 
-            mCalendar = Calendar.getInstance();
-
-            Resources resources = LEDWatchFace.this.getResources();
-            mLineSpacing = resources.getDimension(R.dimen.line_spacing);
-
-            mSegmentsAlpha = resources.getInteger(R.integer.segments_alpha_opacity);
-
-            if (mVintageMode) {
-                mFontStyle = FONT_STYLE_ITALIC;
-                mFontWeight = FONT_WEIGHT_LIGHT;
-                mFontSize = FONT_SIZE_REGULAR;
-                mForegroundColor = FOREGROUND_COLOR_VINTAGE_LED_RED;
-                mLetterSpacing = 2;
-                mLineSpacing = dpToPixels(16);
-            }
-
-            if (mLCDMode) {
-                mFontStyle = FONT_STYLE_ITALIC;
-                mFontWeight = FONT_WEIGHT_NORMAL;
-                mFontSize = FONT_SIZE_REGULAR;
-                mForegroundColor = FOREGROUND_COLOR_DARK_GRAY_LCD;
-                mBackgroundColor = BACKGROUND_COLOR_GRAY_LCD;
-                mLetterSpacing = 0;
-                mSegmentsAlpha = 25;
-            }
-
-            mBackgroundPaint = new Paint();
-            
-            int rBackgroundColor = getRBackgroundColor();
-            mBackgroundPaint.setColor(ContextCompat.getColor(getApplicationContext(), rBackgroundColor));
-
-            resources = LEDWatchFace.this.getResources();
-            mSevenSegmentTypeface = Typeface.createFromAsset(
-                    resources.getAssets(),
-                    getFontFilename(7, mFontStyle, mFontWeight, mFontFamily, mFontSize)
-            );
-            mFourteenSegmentTypeface = Typeface.createFromAsset(
-                    resources.getAssets(),
-                    getFontFilename(14, mFontStyle, mFontWeight, mFontFamily, mFontSize)
+            Context context = getBaseContext();
+            mSharedPreferences = context.getSharedPreferences(
+                    getString(R.string.preference_file_key),
+                    Context.MODE_PRIVATE
             );
 
-            // time of day
+            getThemePreference();
+
             mTextPaintMiddle = new Paint();
-            mTextPaintMiddle.setTypeface(mSevenSegmentTypeface);
-            mTextPaintMiddle.setTextAlign(Paint.Align.CENTER);
-
-            // day of week
             mTextPaintTopLeft = new Paint();
-            mTextPaintTopLeft.setTypeface(mFourteenSegmentTypeface);
-            mTextPaintTopLeft.setTextAlign(Paint.Align.RIGHT);
-
-            // day of month
             mTextPaintTopRight = new Paint();
-            mTextPaintTopRight.setTypeface(mSevenSegmentTypeface);
-            mTextPaintTopRight.setTextAlign(Paint.Align.LEFT);
-
-            // battery percentage, " 0%" to "99%", or "100"
             mTextPaintBottomLeft = new Paint();
-            mTextPaintBottomLeft.setTypeface(mFourteenSegmentTypeface);
-            mTextPaintBottomLeft.setTextAlign(Paint.Align.RIGHT);
-
-            // seconds
             mTextPaintBottomRight = new Paint();
-            mTextPaintBottomRight.setTypeface(mSevenSegmentTypeface);
-            mTextPaintBottomRight.setTextAlign(Paint.Align.LEFT);
+
+            mCalendar = Calendar.getInstance();
+            updateProperties();
+            mBackgroundBitmap = null;
+        }
+
+        private void getThemePreference() {
+            String themeName = mSharedPreferences.getString(
+                    getString(R.string.theme_default_key),
+                    null
+            );
+            if (themeName == null) {
+                Log.d(TAG, "got theme name (null)");
+            } else {
+                Log.d(TAG, "got theme name " + themeName);
+            }
+            mTheme = LEDWatchTheme.findThemeNamed(themeName);
+            if (mTheme == null) {
+                mTheme = LEDWatchTheme.LED_RED;
+            }
+        }
+
+        private void saveThemePreference() {
+            SharedPreferences.Editor editor = mSharedPreferences.edit();
+            Log.d(TAG, "saving theme name " + mTheme.themeName());
+            editor.putString(
+                    getString(R.string.theme_default_key),
+                    mTheme.themeName()
+            );
+            editor.commit();
         }
 
         @Override
@@ -389,10 +525,17 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             super.onApplyWindowInsets(insets);
 
             Resources resources = LEDWatchFace.this.getResources();
-            boolean isRound = insets.isRound();
+            mIsRound = insets.isRound();
             DisplayMetrics metrics = resources.getDisplayMetrics();
             mSurfaceWidth = metrics.widthPixels;
             mSurfaceHeight = metrics.heightPixels;
+
+            updateProperties();
+            mBackgroundBitmap = null;
+        }
+
+        private void updateSizeBasedProperties() {
+            Resources resources = LEDWatchFace.this.getResources();
 
             if (mAutoPosition) {
                 mXOffsetMiddle = Math.round(mSurfaceWidth / 2f);
@@ -401,7 +544,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
                 mXOffsetBottomLeft = Math.round(mSurfaceWidth / 2f);
                 mXOffsetBottomRight = Math.round(mSurfaceWidth / 2f);
             } else {
-                mXOffsetMiddle = resources.getDimension(isRound ? R.dimen.digital_x_offset_round : R.dimen.digital_x_offset);
+                mXOffsetMiddle = resources.getDimension(mIsRound ? R.dimen.digital_x_offset_round : R.dimen.digital_x_offset);
                 mXOffsetTopLeft = mXOffsetMiddle;
                 mXOffsetTopRight = mXOffsetMiddle;
                 mXOffsetBottomLeft = mXOffsetMiddle;
@@ -419,12 +562,12 @@ public class LEDWatchFace extends CanvasWatchFaceService {
                 }
 
                 mTextPaintMiddle.getTextBounds(sampleText, 0, sampleText.length(), bounds);
-                textSize = (float) Math.floor(mSurfaceWidth * (isRound ? 0.85f : 0.9f)
+                textSize = (float) Math.floor(mSurfaceWidth * (mIsRound ? 0.85f : 0.9f)
                         / (bounds.right - bounds.left)
                         * (bounds.bottom - bounds.top));
             } else {
                 textSize = resources.getDimension(
-                        isRound ? R.dimen.digital_text_size_round : R.dimen.digital_text_size
+                        mIsRound ? R.dimen.digital_text_size_round : R.dimen.digital_text_size
                 );
             }
 
@@ -448,7 +591,6 @@ public class LEDWatchFace extends CanvasWatchFaceService {
                 mYOffsetBottomRight = mYOffsetMiddle + Math.round(textSize * mSmallerTextSizeRatio) + mLineSpacing;
             }
 
-            mBackgroundBitmap = null;
         }
 
         @Override
@@ -458,7 +600,8 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             mLowBitAmbient = properties.getBoolean(PROPERTY_LOW_BIT_AMBIENT, false);
             mBurnInProtection = properties.getBoolean(PROPERTY_BURN_IN_PROTECTION, false);
 
-            updateTextPaintProperties();
+            updateProperties();
+            mBackgroundBitmap = null;
         }
 
         @Override
@@ -472,7 +615,8 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             super.onAmbientModeChanged(inAmbientMode);
 
             mAmbient = inAmbientMode;
-            updateTextPaintProperties();
+            updateProperties();
+            mBackgroundBitmap = null;
 
             // Whether the timer should be running depends on whether we're visible (as well as
             // whether we're in ambient mode), so we may need to start or stop the timer.
@@ -480,31 +624,34 @@ public class LEDWatchFace extends CanvasWatchFaceService {
         }
 
         private void updateTextPaintProperties() {
-            if (mAmbient) {
+            mTextPaintMiddle.setTextAlign(Paint.Align.CENTER);
+            mTextPaintTopLeft.setTextAlign(Paint.Align.RIGHT);
+            mTextPaintTopRight.setTextAlign(Paint.Align.LEFT);
+            mTextPaintBottomLeft.setTextAlign(Paint.Align.RIGHT);
+            mTextPaintBottomRight.setTextAlign(Paint.Align.LEFT);
+            mTextPaintMiddle.setTypeface(mSevenSegmentTypeface);
+            mTextPaintTopLeft.setTypeface(mFourteenSegmentTypeface);
+            mTextPaintTopRight.setTypeface(mSevenSegmentTypeface);
+            mTextPaintBottomLeft.setTypeface(mFourteenSegmentTypeface);
+            mTextPaintBottomRight.setTypeface(mSevenSegmentTypeface);
+            if (mLowBitAmbient) {
                 mTextPaintMiddle.setAntiAlias(false);
-                mTextPaintMiddle.setColor(ContextCompat.getColor(getApplicationContext(), R.color.ambient_digital_text));
                 mTextPaintTopLeft.setAntiAlias(false);
-                mTextPaintTopLeft.setColor(ContextCompat.getColor(getApplicationContext(), R.color.ambient_digital_text));
                 mTextPaintTopRight.setAntiAlias(false);
-                mTextPaintTopRight.setColor(ContextCompat.getColor(getApplicationContext(), R.color.ambient_digital_text));
                 mTextPaintBottomLeft.setAntiAlias(false);
-                mTextPaintBottomLeft.setColor(ContextCompat.getColor(getApplicationContext(), R.color.ambient_digital_text));
                 mTextPaintBottomRight.setAntiAlias(false);
-                mTextPaintBottomRight.setColor(ContextCompat.getColor(getApplicationContext(), R.color.ambient_digital_text));
             } else {
-                int rForegroundColor = getRForegroundColor();
-                int textColor = ContextCompat.getColor(getApplicationContext(), rForegroundColor);
                 mTextPaintMiddle.setAntiAlias(true);
-                mTextPaintMiddle.setColor(textColor);
                 mTextPaintTopLeft.setAntiAlias(true);
-                mTextPaintTopLeft.setColor(textColor);
                 mTextPaintTopRight.setAntiAlias(true);
-                mTextPaintTopRight.setColor(textColor);
                 mTextPaintBottomLeft.setAntiAlias(true);
-                mTextPaintBottomLeft.setColor(textColor);
                 mTextPaintBottomRight.setAntiAlias(true);
-                mTextPaintBottomRight.setColor(textColor);
             }
+            mTextPaintMiddle.setColor(mForegroundColor);
+            mTextPaintTopLeft.setColor(mForegroundColor);
+            mTextPaintTopRight.setColor(mForegroundColor);
+            mTextPaintBottomLeft.setColor(mForegroundColor);
+            mTextPaintBottomRight.setColor(mForegroundColor);
         }
 
         /**
@@ -521,75 +668,34 @@ public class LEDWatchFace extends CanvasWatchFaceService {
                     // The user has started a different gesture or otherwise cancelled the tap.
                     break;
                 case TAP_TYPE_TAP:
-                    // The user has completed the tap gesture.
+                    float xx = x;
+                    float yy = y;
+                    if (yy >= mSurfaceHeight / 3 && yy <= mSurfaceHeight * 2 / 3) {
+                        if (xx < mSurfaceWidth / 2) {
+                            mTheme = mTheme.nextTheme();
+                            saveThemePreference();
+                            updateProperties();
+                            mBackgroundBitmap = null;
+                            invalidate();
+                        }
+                    }
                     break;
             }
-            invalidate();
         }
 
         @Override
         public void onDraw(Canvas canvas, Rect bounds) {
-
-            // for faint all-segments-on characters
-            String allSegmentsOnMiddle = ".88:88";
-            String allSegmentsOnTopLeft = "~~~";
-            String allSegmentsOnTopRight = "888";
-            String allSegmentsOnBottomLeft = "1~~~"; // "0%" to "100%"
-            String allSegmentsOnBottomRight = "888";
-
-            if (m100SansPercent) {
-                allSegmentsOnBottomLeft = "~~~"; // "0%" to "99%" then "100"
-            }
-
-            if (mLetterSpacing > 0) {
-                allSegmentsOnMiddle      = addLetterSpacing(allSegmentsOnMiddle,      mLetterSpacing, TEXT_ALIGN_CENTER);
-                allSegmentsOnTopLeft     = addLetterSpacing(allSegmentsOnTopLeft,     mLetterSpacing, TEXT_ALIGN_RIGHT);
-                allSegmentsOnTopRight    = addLetterSpacing(allSegmentsOnTopRight,    mLetterSpacing, TEXT_ALIGN_LEFT);
-                allSegmentsOnBottomLeft  = addLetterSpacing(allSegmentsOnBottomLeft,  mLetterSpacing, TEXT_ALIGN_RIGHT);
-                allSegmentsOnBottomRight = addLetterSpacing(allSegmentsOnBottomRight, mLetterSpacing, TEXT_ALIGN_LEFT);
-            }
-
-            if (!mAmbient && mBackgroundBitmap == null && mSegmentsAlpha > 0) {
-                Canvas backgroundCanvas = new Canvas();
-                mBackgroundBitmap = Bitmap.createBitmap(canvas.getWidth(), canvas.getHeight(), Bitmap.Config.ARGB_8888);
-                backgroundCanvas.setBitmap(mBackgroundBitmap);
-                backgroundCanvas.drawRect(0, 0, bounds.width(), bounds.height(), mBackgroundPaint);
-
-                int rForegroundColor = getRForegroundColor();
-                mTextPaintMiddle.setAntiAlias(true);
-                mTextPaintMiddle.setColor(ContextCompat.getColor(getApplicationContext(), rForegroundColor));
-                mTextPaintTopLeft.setAntiAlias(true);
-                mTextPaintTopLeft.setColor(ContextCompat.getColor(getApplicationContext(), rForegroundColor));
-                mTextPaintTopRight.setAntiAlias(true);
-                mTextPaintTopRight.setColor(ContextCompat.getColor(getApplicationContext(), rForegroundColor));
-                mTextPaintBottomLeft.setAntiAlias(true);
-                mTextPaintBottomLeft.setColor(ContextCompat.getColor(getApplicationContext(), rForegroundColor));
-                mTextPaintBottomRight.setAntiAlias(true);
-                mTextPaintBottomRight.setColor(ContextCompat.getColor(getApplicationContext(), rForegroundColor));
-                mTextPaintMiddle.setAlpha(mSegmentsAlpha);
-                mTextPaintTopLeft.setAlpha(mSegmentsAlpha);
-                mTextPaintTopRight.setAlpha(mSegmentsAlpha);
-                mTextPaintBottomLeft.setAlpha(mSegmentsAlpha);
-                mTextPaintBottomRight.setAlpha(mSegmentsAlpha);
-                backgroundCanvas.drawText(allSegmentsOnMiddle, mXOffsetMiddle, mYOffsetMiddle, mTextPaintMiddle);
-                backgroundCanvas.drawText(allSegmentsOnTopLeft, mXOffsetTopLeft, mYOffsetTopLeft, mTextPaintTopLeft);
-                backgroundCanvas.drawText(allSegmentsOnTopRight, mXOffsetTopRight, mYOffsetTopRight, mTextPaintTopRight);
-                backgroundCanvas.drawText(allSegmentsOnBottomLeft, mXOffsetBottomLeft, mYOffsetBottomLeft, mTextPaintBottomLeft);
-                backgroundCanvas.drawText(allSegmentsOnBottomRight, mXOffsetBottomRight, mYOffsetBottomRight, mTextPaintBottomRight);
-                mTextPaintMiddle.setAlpha(255);
-                mTextPaintTopLeft.setAlpha(255);
-                mTextPaintTopRight.setAlpha(255);
-                mTextPaintBottomLeft.setAlpha(255);
-                mTextPaintBottomRight.setAlpha(255);
-            }
+            createBackgroundBitmap(canvas.getWidth(), canvas.getHeight());
 
             // Draw the background.
             if (mAmbient) {
                 canvas.drawColor(Color.BLACK);
-            } else if (!mAmbient && mBackgroundBitmap != null && mSegmentsAlpha > 0) {
-                canvas.drawBitmap(mBackgroundBitmap, 0, 0, null);
             } else {
-                canvas.drawRect(0, 0, bounds.width(), bounds.height(), mBackgroundPaint);
+                if (mBackgroundBitmap != null && mSegmentsAlpha > 0) {
+                    canvas.drawBitmap(mBackgroundBitmap, 0, 0, null);
+                } else {
+                    canvas.drawRect(0, 0, bounds.width(), bounds.height(), mBackgroundPaint);
+                }
             }
 
             int batteryPercentage = 0;
@@ -614,7 +720,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             int minute = mCalendar.get(Calendar.MINUTE);
             int second = mCalendar.get(Calendar.SECOND);
             int millis = mCalendar.get(Calendar.MILLISECOND);
-            int dayOfWeek  = mCalendar.get(Calendar.DAY_OF_WEEK);
+            int dayOfWeek = mCalendar.get(Calendar.DAY_OF_WEEK);
             int dayOfMonth = mCalendar.get(Calendar.DAY_OF_MONTH);
 
             boolean isPM = mCalendar.get(Calendar.AM_PM) == Calendar.PM;
@@ -760,6 +866,69 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             }
         }
 
+        private void createBackgroundBitmap(int width, int height) {
+            if (mAmbient) {
+                return;
+            }
+            if (mBackgroundBitmap != null) {
+                return;
+            }
+            if (mSegmentsAlpha <= 0) {
+                return;
+            }
+
+            // for faint all-segments-on characters
+            String allSegmentsOnMiddle = ".88:88";
+            String allSegmentsOnTopLeft = "~~~";
+            String allSegmentsOnTopRight = "888";
+            String allSegmentsOnBottomLeft = "1~~~"; // "0%" to "100%"
+            String allSegmentsOnBottomRight = "888";
+
+            if (m100SansPercent) {
+                allSegmentsOnBottomLeft = "~~~"; // "0%" to "99%" then "100"
+            }
+
+            if (mLetterSpacing > 0) {
+                allSegmentsOnMiddle = addLetterSpacing(allSegmentsOnMiddle, mLetterSpacing, TEXT_ALIGN_CENTER);
+                allSegmentsOnTopLeft = addLetterSpacing(allSegmentsOnTopLeft, mLetterSpacing, TEXT_ALIGN_RIGHT);
+                allSegmentsOnTopRight = addLetterSpacing(allSegmentsOnTopRight, mLetterSpacing, TEXT_ALIGN_LEFT);
+                allSegmentsOnBottomLeft = addLetterSpacing(allSegmentsOnBottomLeft, mLetterSpacing, TEXT_ALIGN_RIGHT);
+                allSegmentsOnBottomRight = addLetterSpacing(allSegmentsOnBottomRight, mLetterSpacing, TEXT_ALIGN_LEFT);
+            }
+
+            Canvas backgroundCanvas = new Canvas();
+            mBackgroundBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+            backgroundCanvas.setBitmap(mBackgroundBitmap);
+            backgroundCanvas.drawRect(0, 0, width, height, mBackgroundPaint);
+
+            int rForegroundColor = getForegroundColor();
+            mTextPaintMiddle.setAntiAlias(true);
+            mTextPaintMiddle.setColor(mForegroundColor);
+            mTextPaintTopLeft.setAntiAlias(true);
+            mTextPaintTopLeft.setColor(mForegroundColor);
+            mTextPaintTopRight.setAntiAlias(true);
+            mTextPaintTopRight.setColor(mForegroundColor);
+            mTextPaintBottomLeft.setAntiAlias(true);
+            mTextPaintBottomLeft.setColor(mForegroundColor);
+            mTextPaintBottomRight.setAntiAlias(true);
+            mTextPaintBottomRight.setColor(mForegroundColor);
+            mTextPaintMiddle.setAlpha(mSegmentsAlpha);
+            mTextPaintTopLeft.setAlpha(mSegmentsAlpha);
+            mTextPaintTopRight.setAlpha(mSegmentsAlpha);
+            mTextPaintBottomLeft.setAlpha(mSegmentsAlpha);
+            mTextPaintBottomRight.setAlpha(mSegmentsAlpha);
+            backgroundCanvas.drawText(allSegmentsOnMiddle, mXOffsetMiddle, mYOffsetMiddle, mTextPaintMiddle);
+            backgroundCanvas.drawText(allSegmentsOnTopLeft, mXOffsetTopLeft, mYOffsetTopLeft, mTextPaintTopLeft);
+            backgroundCanvas.drawText(allSegmentsOnTopRight, mXOffsetTopRight, mYOffsetTopRight, mTextPaintTopRight);
+            backgroundCanvas.drawText(allSegmentsOnBottomLeft, mXOffsetBottomLeft, mYOffsetBottomLeft, mTextPaintBottomLeft);
+            backgroundCanvas.drawText(allSegmentsOnBottomRight, mXOffsetBottomRight, mYOffsetBottomRight, mTextPaintBottomRight);
+            mTextPaintMiddle.setAlpha(255);
+            mTextPaintTopLeft.setAlpha(255);
+            mTextPaintTopRight.setAlpha(255);
+            mTextPaintBottomLeft.setAlpha(255);
+            mTextPaintBottomRight.setAlpha(255);
+        }
+
         /**
          * Starts the {@link #mUpdateTimeHandler} timer if it should
          * be running and isn't currently or stops it if it shouldn't
@@ -797,11 +966,11 @@ public class LEDWatchFace extends CanvasWatchFaceService {
         /**
          * Build the name of a font resources, returning it as a string.
          *
-         * @param segments an integer, 7 or 14.
-         * @param fontStyle one of the FONT_STYLE_* constants.
+         * @param segments   an integer, 7 or 14.
+         * @param fontStyle  one of the FONT_STYLE_* constants.
          * @param fontWeight one of the FONT_WEIGHT_* constants.
          * @param fontFamily one of the FONT_FAMILY_* constants.
-         * @param fontSize one of the FONT_SIZE_* constants.
+         * @param fontSize   one of the FONT_SIZE_* constants.
          * @return a font resource name.
          */
         private String getFontFilename(
@@ -855,13 +1024,13 @@ public class LEDWatchFace extends CanvasWatchFaceService {
     /**
      * Insert at each point between two characters a number of spaces,
      * returning the resulting string.
-     *
+     * <p>
      * If textAlign is TEXT_ALIGN_LEFT, also pad spaces before the first character.
-     *
+     * <p>
      * If textAlign is TEXT_ALIGN_RIGHT, also pad spaces after the last character.
      *
-     * @param s the original string
-     * @param spacing the number of spaces to insert at each location
+     * @param s         the original string
+     * @param spacing   the number of spaces to insert at each location
      * @param textAlign
      * @return the resulting string
      */
