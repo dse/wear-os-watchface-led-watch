@@ -99,10 +99,20 @@ public class LEDWatchFace extends CanvasWatchFaceService {
                 R.color.background_color_green_lcd_2,
                 "lcd-green-2"
         ),
-        LCD_GRAY(
+        LCD_GRAY_40(
                 LEDWatchThemeMode.LCD,
-                R.color.background_color_gray_lcd,
-                "lcd-gray"
+                R.color.background_color_gray40_lcd,
+                "lcd-gray-40"
+        ),
+        LCD_GRAY_60(
+                LEDWatchThemeMode.LCD,
+                R.color.background_color_gray60_lcd,
+                "lcd-gray-60"
+        ),
+        LCD_GRAY_80(
+                LEDWatchThemeMode.LCD,
+                R.color.background_color_gray80_lcd,
+                "lcd-gray-80"
         ),
         LCD_WHITE(
                 LEDWatchThemeMode.LCD,

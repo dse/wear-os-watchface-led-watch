@@ -29,7 +29,9 @@
     <color name="background_color_orange_lcd">#fb7c00</color>
     <color name="background_color_green_lcd">#87ad34</color>
     <color name="background_color_green_lcd_2">#b9e200</color>
-    <color name="background_color_gray_lcd">#cccccc</color>
+    <color name="background_color_gray40_lcd">#666666</color>
+    <color name="background_color_gray60_lcd">#999999</color>
+    <color name="background_color_gray80_lcd">#cccccc</color>
     <color name="background_color_white_lcd">#ffffff</color>
 
     <color name="foreground_color_dark_gray_lcd">#222222</color>
