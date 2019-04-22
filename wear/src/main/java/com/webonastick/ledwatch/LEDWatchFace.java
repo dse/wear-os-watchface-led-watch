@@ -163,7 +163,15 @@ public class LEDWatchFace extends CanvasWatchFaceService {
 
         public LEDWatchTheme nextTheme() {
             int ordinal = this.ordinal();
-            ordinal = (ordinal + 1) % LEDWatchTheme.values().length;
+            int length = LEDWatchTheme.values().length;
+            ordinal = (ordinal + 1) % length;
+            return LEDWatchTheme.values()[ordinal];
+        }
+
+        public LEDWatchTheme previousTheme() {
+            int ordinal = this.ordinal();
+            int length = LEDWatchTheme.values().length;
+            ordinal = (ordinal + length - 1) % length;
             return LEDWatchTheme.values()[ordinal];
         }
 
@@ -683,6 +691,12 @@ public class LEDWatchFace extends CanvasWatchFaceService {
                     if (yy >= mSurfaceHeight / 3 && yy <= mSurfaceHeight * 2 / 3) {
                         if (xx < mSurfaceWidth / 2) {
                             mTheme = mTheme.nextTheme();
+                            saveThemePreference();
+                            updateProperties();
+                            mBackgroundBitmap = null;
+                            invalidate();
+                        } else {
+                            mTheme = mTheme.previousTheme();
                             saveThemePreference();
                             updateProperties();
                             mBackgroundBitmap = null;
