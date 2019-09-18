@@ -337,15 +337,13 @@ public class LEDWatchFace extends CanvasWatchFaceService {
         private final boolean mShowBatteryLevel = true;
         private final boolean mShowSeconds = true;
 
-        // for previews
-        private final boolean mEasterEgg105850 = false; // ;-)
-
         // if true: show "100" then "99%"
         // if false: extra "1" segment to show "100%"
         private final boolean m100SansPercent = true;
 
         private Typeface mSixthsOfAPieTypeface;
 
+        private boolean mDemoTimeMode = false;
         private boolean mEmulatorMode = false;
 
         private float mPixelDensity;
@@ -658,7 +656,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             int width = bounds.width();
             int height = bounds.height();
             mXOffsetAmPm = 8 * mPixelDensity;
-            if (mIsRound) {
+            if (mIsRound || mDemoTimeMode) {
                 float angle = (float) Math.atan2(height, width);
                 float cosine = (float) Math.cos(angle);
                 textSize = textSize * cosine;
@@ -674,9 +672,6 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             mTextPaintBottomRight.setTextSize(textSize * mSmallerTextSizeRatio);
             mTextPaintBottomRight2.setTextSize(textSize * mSmallerTextSizeRatio);
             mTextPaintAmPm.setTextSize(textSizeAmPm);
-
-//            float textAscent     = -getCapHeight(mTextPaintMiddle);
-//            float textAscentAmPm = -getCapHeight(mTextPaintAmPm);
 
             float textAscent     = -textSize;
             float textAscentAmPm = -textSizeAmPm * 0.7f;
@@ -822,6 +817,14 @@ public class LEDWatchFace extends CanvasWatchFaceService {
                             mBackgroundBitmap = null;
                             invalidate();
                             break;
+                        case 4:
+                            if (mEmulatorMode) {
+                                mDemoTimeMode = !mDemoTimeMode;
+                                mBackgroundBitmap = null;
+                                updateProperties();
+                                invalidate();
+                            }
+                            break;
                     }
             }
         }
@@ -842,6 +845,9 @@ public class LEDWatchFace extends CanvasWatchFaceService {
         }
 
         private boolean is24Hour() {
+            if (mDemoTimeMode) {
+                return false;
+            }
             int is24HourInt;
             try {
                 is24HourInt = Settings.System.getInt(getContentResolver(), Settings.System.TIME_12_24);
@@ -883,10 +889,10 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             }
 
             long now = System.currentTimeMillis();
-            mCalendar.setTimeInMillis(now);
-
-            if (mEasterEgg105850) {
-                mCalendar.set(2013, 5, 30, 10, 58, 50);
+            if (mDemoTimeMode) {
+                mCalendar.set(2013, 5 /* JUN */, 30, 10, 58, 50);
+            } else {
+                mCalendar.setTimeInMillis(now);
             }
 
             int hour12 = mCalendar.get(Calendar.HOUR);
@@ -909,16 +915,13 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             String textBottomLeft = null;  // battery percentage
             String textBottomRight = null; // seconds
 
-            boolean is24Hour = is24Hour();
-
-            if (mEasterEgg105850) {
+            if (mDemoTimeMode) {
                 batteryPercentage = 89;
                 blink = false;
-                is24Hour = true;
             }
 
             // time of day
-            if (is24Hour) {
+            if (is24Hour()) {
                 textMiddle = String.format(Locale.getDefault(), "%02d:%02d", hour24, minute);
             } else {
                 textMiddle = String.format(Locale.getDefault(), "%02d:%02d", hour12, minute);
