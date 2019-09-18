@@ -21,11 +21,9 @@ import android.provider.Settings;
 import android.support.wearable.watchface.CanvasWatchFaceService;
 import android.support.wearable.watchface.WatchFaceStyle;
 import android.text.format.DateFormat;
-import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.SurfaceHolder;
-import android.view.WindowInsets;
 
 import java.lang.ref.WeakReference;
 import java.util.Calendar;
@@ -223,7 +221,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
     private static final int TEXT_ALIGN_CENTER = 2;
     private static final int TEXT_ALIGN_RIGHT = 3;
 
-    private static final Typeface NORMAL_TYPEFACE =
+    private static final Typeface AM_PM_TYPEFACE =
             Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL);
 
     /**
@@ -297,6 +295,10 @@ public class LEDWatchFace extends CanvasWatchFaceService {
         private float mXOffsetBottomRight2;
         private float mYOffsetBottomRight2;
 
+        private float mXOffsetAmPm;
+        private float mYOffsetAm;
+        private float mYOffsetPm;
+
         private Paint mBackgroundPaint = null;
         private Paint mTextPaintMiddle = null;
         private Paint mTextPaintTopLeft = null;
@@ -304,6 +306,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
         private Paint mTextPaintBottomLeft = null;
         private Paint mTextPaintBottomRight = null;
         private Paint mTextPaintBottomRight2 = null;
+        private Paint mTextPaintAmPm = null;
 
         private boolean mLowBitAmbient;
         private boolean mBurnInProtection;
@@ -328,8 +331,6 @@ public class LEDWatchFace extends CanvasWatchFaceService {
         private int mBackgroundColor = Color.BLACK;
         private int mFaintForegroundColor = Color.BLACK;
 
-        private Boolean m24Hour = null;
-
         private final boolean mBlinkingColon = true;
         private final boolean mShowDayOfWeek = true;
         private final boolean mShowDayOfMonth = true;
@@ -348,11 +349,6 @@ public class LEDWatchFace extends CanvasWatchFaceService {
         private boolean mEmulatorMode = false;
 
         private float mPixelDensity;
-
-        private int dpToPixels(float dp) {
-            final float scale = getResources().getDisplayMetrics().density;
-            return (int) (dp * scale + 0.5f);
-        }
 
         private int getBackgroundColor() {
             if (mAmbient) {
@@ -469,7 +465,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
                     mDSEGFontFamily = DSEGFontFamily.CLASSIC;
                     mDSEGFontSize = DSEGFontSize.NORMAL;
                     mDSEGFontStyle = DSEGFontStyle.ITALIC;
-                    mDSEGFontWeight = DSEGFontWeight.REGULAR;
+                    mDSEGFontWeight = DSEGFontWeight.BOLD;
                     break;
                 default:
                     mDSEGFontFamily = DSEGFontFamily.CLASSIC;
@@ -525,11 +521,9 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             }
             mPixelDensity = getResources().getDisplayMetrics().density;
 
-
             WatchFaceStyle.Builder styleBuilder = new WatchFaceStyle.Builder(LEDWatchFace.this);
             styleBuilder.setAcceptsTapEvents(true);
             styleBuilder.setStatusBarGravity(Gravity.RIGHT | Gravity.TOP);
-            // styleBuilder.setHotwordIndicatorGravity(Gravity.CENTER_HORIZONTAL | Gravity.BOTTOM);
             WatchFaceStyle style = styleBuilder.build();
             setWatchFaceStyle(style);
 
@@ -554,6 +548,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             mTextPaintBottomLeft = new Paint();
             mTextPaintBottomRight = new Paint();
             mTextPaintBottomRight2 = new Paint();
+            mTextPaintAmPm = new Paint();
 
             mCalendar = Calendar.getInstance();
             updateProperties();
@@ -641,76 +636,71 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             mBackgroundBitmap = null;
         }
 
-//        @Override
-//        public void onApplyWindowInsets(WindowInsets insets) {
-//            super.onApplyWindowInsets(insets);
-//
-//            Resources resources = LEDWatchFace.this.getResources();
-//            mIsRound = insets.isRound();
-//            DisplayMetrics metrics = resources.getDisplayMetrics();
-//            mSurfaceWidth = metrics.widthPixels;
-//            mSurfaceHeight = metrics.heightPixels;
-//
-//            updateProperties();
-//            mBackgroundBitmap = null;
-//        }
-
         private void updateSizeBasedProperties() {
             Resources resources = LEDWatchFace.this.getResources();
 
-            mXOffsetMiddle = Math.round(mSurfaceWidth / 2f);
-            mXOffsetTopLeft = Math.round(mSurfaceWidth / 2f);
-            mXOffsetTopRight = Math.round(mSurfaceWidth / 2f);
-            mXOffsetBottomLeft = Math.round(mSurfaceWidth / 2f);
-            mXOffsetBottomRight = Math.round(mSurfaceWidth / 2f);
+            mXOffsetMiddle = mSurfaceWidth / 2f;
+            mXOffsetTopLeft = mSurfaceWidth / 2f;
+            mXOffsetTopRight = mSurfaceWidth / 2f;
+            mXOffsetBottomLeft = mSurfaceWidth / 2f;
+            mXOffsetBottomRight = mSurfaceWidth / 2f;
 
-            float textSize;
-
+            // compute text size
             Rect bounds = new Rect();
-            mTextPaintMiddle.setTextSize(mSurfaceWidth);
+            mTextPaintMiddle.setTextSize(mSurfaceWidth); // for calculatory purposes
             String sampleText = "88:88";
             if (mLetterSpacing > 0) {
                 sampleText = addLetterSpacing(sampleText, mLetterSpacing, TEXT_ALIGN_CENTER);
             }
-            sampleText = ":" + sampleText + ":";
-
             mTextPaintMiddle.getTextBounds(sampleText, 0, sampleText.length(), bounds);
-
-            textSize = (mSurfaceWidth - dpToPixels(8)) * 1f / bounds.width() * bounds.height();
+            float textSize = (mSurfaceWidth - 16 * mPixelDensity) / bounds.width() * bounds.height();
 
             int width = bounds.width();
             int height = bounds.height();
+            mXOffsetAmPm = 8 * mPixelDensity;
             if (mIsRound) {
                 float angle = (float) Math.atan2(height, width);
                 float cosine = (float) Math.cos(angle);
                 textSize = textSize * cosine;
+                mXOffsetAmPm = mSurfaceWidth / 2f - (mSurfaceWidth / 2f - 8 * mPixelDensity) * cosine;
             }
 
+            float textSizeAmPm = (textSize / 4f) / 0.7f;
+
             mTextPaintMiddle.setTextSize(textSize);
-            mTextPaintTopLeft.setTextSize(Math.round(textSize * mSmallerTextSizeRatio));
-            mTextPaintTopRight.setTextSize(Math.round(textSize * mSmallerTextSizeRatio));
-            mTextPaintBottomLeft.setTextSize(Math.round(textSize * mSmallerTextSizeRatio));
-            mTextPaintBottomRight.setTextSize(Math.round(textSize * mSmallerTextSizeRatio));
-            mTextPaintBottomRight2.setTextSize(Math.round(textSize * mSmallerTextSizeRatio));
+            mTextPaintTopLeft.setTextSize(textSize * mSmallerTextSizeRatio);
+            mTextPaintTopRight.setTextSize(textSize * mSmallerTextSizeRatio);
+            mTextPaintBottomLeft.setTextSize(textSize * mSmallerTextSizeRatio);
+            mTextPaintBottomRight.setTextSize(textSize * mSmallerTextSizeRatio);
+            mTextPaintBottomRight2.setTextSize(textSize * mSmallerTextSizeRatio);
+            mTextPaintAmPm.setTextSize(textSizeAmPm);
 
-            Log.d(TAG, "mSurfaceHeight = " + mSurfaceHeight);
+//            float textAscent     = -getCapHeight(mTextPaintMiddle);
+//            float textAscentAmPm = -getCapHeight(mTextPaintAmPm);
 
-            int mLineSpacingDp = (int) Math.round(textSize * mSmallerTextSizeRatio * 0.5);
+            float textAscent     = -textSize;
+            float textAscentAmPm = -textSizeAmPm * 0.7f;
 
-            mYOffsetMiddle = Math.round(mSurfaceHeight / 2f + textSize / 2f);
-            mYOffsetTopLeft = mYOffsetMiddle - textSize - mLineSpacingDp;
-            mYOffsetTopRight = mYOffsetMiddle - textSize - mLineSpacingDp;
-            mYOffsetBottomLeft = mYOffsetMiddle + Math.round(textSize * mSmallerTextSizeRatio) + mLineSpacingDp;
-            mYOffsetBottomRight = mYOffsetMiddle + Math.round(textSize * mSmallerTextSizeRatio) + mLineSpacingDp;
-            mYOffsetBottomRight2 = mYOffsetMiddle + Math.round(textSize * mSmallerTextSizeRatio) + mLineSpacingDp;
+            float mLineSpacingDp = textSize * mSmallerTextSizeRatio * 0.5f;
 
+            mYOffsetMiddle = mSurfaceHeight / 2f - textAscent / 2f;
+            mYOffsetTopLeft = mYOffsetMiddle + textAscent - mLineSpacingDp;
+            mYOffsetTopRight = mYOffsetMiddle + textAscent - mLineSpacingDp;
+            mYOffsetBottomLeft = mYOffsetMiddle - textAscent * mSmallerTextSizeRatio + mLineSpacingDp;
+            mYOffsetBottomRight = mYOffsetMiddle - textAscent * mSmallerTextSizeRatio + mLineSpacingDp;
+            mYOffsetBottomRight2 = mYOffsetMiddle - textAscent * mSmallerTextSizeRatio + mLineSpacingDp;
+
+            mYOffsetAm = mSurfaceHeight / 2f + textAscent / 4f - textAscentAmPm / 2f;
+            mYOffsetPm = mSurfaceHeight / 2f - textAscent / 4f - textAscentAmPm / 2f;
+
+            /* x offset for centered pie seconds */
             Rect bounds1 = new Rect();
             Rect bounds2 = new Rect();
             String text1 = addLetterSpacing("888", mLetterSpacing, TEXT_ALIGN_LEFT, ':');
             String text2 = addLetterSpacing("888", mLetterSpacing, TEXT_ALIGN_CENTER, ':');
             mTextPaintBottomRight.getTextBounds(text1, 0, text1.length(), bounds1);
             mTextPaintBottomRight.getTextBounds(text2, 0, text2.length(), bounds2);
-            mXOffsetBottomRight2 = mXOffsetMiddle + Math.round(bounds1.width() - bounds2.width() / 2f);
+            mXOffsetBottomRight2 = mXOffsetMiddle + bounds1.width() - bounds2.width() / 2f;
         }
 
         @Override
@@ -851,6 +841,22 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             }
         }
 
+        private boolean is24Hour() {
+            int is24HourInt;
+            try {
+                is24HourInt = Settings.System.getInt(getContentResolver(), Settings.System.TIME_12_24);
+            } catch (Settings.SettingNotFoundException e) {
+                is24HourInt = -1;
+            }
+            if (is24HourInt == 24) {
+                return true;
+            } else if (is24HourInt == 12) {
+                return false;
+            } else {
+                return DateFormat.is24HourFormat(LEDWatchFace.this);
+            }
+        }
+
         @Override
         public void onDraw(Canvas canvas, Rect bounds) {
             createBackgroundBitmap(canvas.getWidth(), canvas.getHeight());
@@ -903,24 +909,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             String textBottomLeft = null;  // battery percentage
             String textBottomRight = null; // seconds
 
-            boolean is24Hour;
-            if (m24Hour == null) {
-                int is24HourInt;
-                try {
-                    is24HourInt = Settings.System.getInt(getContentResolver(), Settings.System.TIME_12_24);
-                } catch (Settings.SettingNotFoundException e) {
-                    is24HourInt = -1;
-                }
-                if (is24HourInt == 24) {
-                    is24Hour = true;
-                } else if (is24HourInt == 12) {
-                    is24Hour = false;
-                } else {
-                    is24Hour = DateFormat.is24HourFormat(LEDWatchFace.this);
-                }
-            } else {
-                is24Hour = m24Hour;
-            }
+            boolean is24Hour = is24Hour();
 
             if (mEasterEgg105850) {
                 batteryPercentage = 89;
@@ -939,9 +928,10 @@ public class LEDWatchFace extends CanvasWatchFaceService {
                     textMiddle = "!" + textMiddle.substring(1);
                 }
 
-                // PM indicator
                 if (isPM) {
-                    textMiddle = "." + textMiddle; // '.' is always followed by blank numeral or '1'
+                    canvas.drawText("P", mXOffsetAmPm, mYOffsetPm, mTextPaintAmPm);
+                } else {
+                    canvas.drawText("A", mXOffsetAmPm, mYOffsetAm, mTextPaintAmPm);
                 }
             }
 
@@ -1057,7 +1047,10 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             }
 
             // for faint all-segments-on characters
-            String allSegmentsOnMiddle = ".88:88";
+            String allSegmentsOnMiddle = "88:88";
+            if (!is24Hour()) {
+                allSegmentsOnMiddle = "18:88";
+            }
             String allSegmentsOnTopLeft = "~~~";
             String allSegmentsOnTopRight = "888";
             String allSegmentsOnBottomLeft = "1~~~"; // "0%" to "100%"
@@ -1096,12 +1089,15 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             mTextPaintBottomRight.setColor(mForegroundColor);
             mTextPaintBottomRight2.setAntiAlias(true);
             mTextPaintBottomRight2.setColor(mForegroundColor);
+            mTextPaintAmPm.setAntiAlias(true);
+            mTextPaintAmPm.setColor(mForegroundColor);
             mTextPaintMiddle.setAlpha(mFaintAlpha);
             mTextPaintTopLeft.setAlpha(mFaintAlpha);
             mTextPaintTopRight.setAlpha(mFaintAlpha);
             mTextPaintBottomLeft.setAlpha(mFaintAlpha);
             mTextPaintBottomRight.setAlpha(mFaintAlpha);
             mTextPaintBottomRight2.setAlpha(mFaintAlpha);
+            mTextPaintAmPm.setAlpha(mFaintAlpha);
             backgroundCanvas.drawText(allSegmentsOnMiddle, mXOffsetMiddle, mYOffsetMiddle, mTextPaintMiddle);
             backgroundCanvas.drawText(allSegmentsOnTopLeft, mXOffsetTopLeft, mYOffsetTopLeft, mTextPaintTopLeft);
             backgroundCanvas.drawText(allSegmentsOnTopRight, mXOffsetTopRight, mYOffsetTopRight, mTextPaintTopRight);
@@ -1111,12 +1107,17 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             } else {
                 backgroundCanvas.drawText(allSegmentsOnBottomRight, mXOffsetBottomRight, mYOffsetBottomRight, mTextPaintBottomRight);
             }
+            if (!is24Hour()) {
+                backgroundCanvas.drawText("A", mXOffsetAmPm, mYOffsetAm, mTextPaintAmPm);
+                backgroundCanvas.drawText("P", mXOffsetAmPm, mYOffsetPm, mTextPaintAmPm);
+            }
             mTextPaintMiddle.setAlpha(255);
             mTextPaintTopLeft.setAlpha(255);
             mTextPaintTopRight.setAlpha(255);
             mTextPaintBottomLeft.setAlpha(255);
             mTextPaintBottomRight.setAlpha(255);
             mTextPaintBottomRight2.setAlpha(255);
+            mTextPaintAmPm.setAlpha(255);
         }
 
         /**
@@ -1164,12 +1165,13 @@ public class LEDWatchFace extends CanvasWatchFaceService {
      *
      * @param s         the original string
      * @param spacing   the number of spaces to insert at each location
-     * @param textAlign
+     * @param textAlign TEXT_ALIGN_LEFT, _CENTER, or _RIGHT
      * @return the resulting string
      */
     private static String addLetterSpacing(String s, int spacing, int textAlign) {
         return addLetterSpacing(s, spacing, textAlign, ' ');
     }
+
     private static String addLetterSpacing(String s, int spacing, int textAlign, char space) {
         boolean insertSpaceAtEnd = false;
         boolean insertSpaceAtBeginning = false;
@@ -1189,10 +1191,6 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             }
         }
         for (int i = length - 1; i >= 1; i -= 1) {
-            // "A.B" => "A .B"
-            if (i > 0 && s.charAt(i - 1) == '.') {
-                continue;
-            }
             for (int j = 1; j <= spacing; j += 1) {
                 resultBuffer.insert(i, space);
             }
@@ -1203,6 +1201,12 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             }
         }
         return resultBuffer.toString();
+    }
+
+    private static float getCapHeight(Paint paint) {
+        Rect bounds = new Rect();
+        paint.getTextBounds("X", 0, 1, bounds);
+        return bounds.height();
     }
 
 }
