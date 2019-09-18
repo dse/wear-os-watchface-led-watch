@@ -13,6 +13,7 @@ import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.Typeface;
 import android.os.BatteryManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -32,6 +33,8 @@ import java.util.Locale;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 
+import com.webonastick.watchface.MultiTapEventHandler;
+import com.webonastick.watchface.MultiTapHandler;
 
 /**
  * A digital watch face with seconds, battery, and date.
@@ -43,166 +46,177 @@ import java.util.concurrent.TimeUnit;
 public class LEDWatchFace extends CanvasWatchFaceService {
 
     public enum LEDWatchThemeMode {
-        LED,
-        LCD,
-        VINTAGE_LED;
-    }
+        LED("foreground", "led"),
+        LCD("background", "lcd"),
+        VINTAGE_LED("foreground", "vintage_led");
 
-    public enum LEDWatchTheme {
-        LED_RED(
-                LEDWatchThemeMode.LED,
-                R.color.foreground_color_red,
-                "led-red"
-        ),
-        LED_ORANGE(
-                LEDWatchThemeMode.LED,
-                R.color.foreground_color_orange,
-                "led-orange"
-        ),
-        LED_AMBER(
-                LEDWatchThemeMode.LED,
-                R.color.foreground_color_amber,
-                "led-amber"
-        ),
-        LED_YELLOW(
-                LEDWatchThemeMode.LED,
-                R.color.foreground_color_yellow,
-                "led-yellow"
-        ),
-        LED_GREEN(
-                LEDWatchThemeMode.LED,
-                R.color.foreground_color_green,
-                "led-green"
-        ),
-        LED_BLUE(
-                LEDWatchThemeMode.LED,
-                R.color.foreground_color_blue,
-                "led-blue"
-        ),
-        LED_WHITE(
-                LEDWatchThemeMode.LED,
-                R.color.foreground_color_white,
-                "led-white"
-        ),
-        LCD_ORANGE(
-                LEDWatchThemeMode.LCD,
-                R.color.background_color_orange_lcd,
-                "lcd-orange"
-        ),
-        LCD_GREEN(
-                LEDWatchThemeMode.LCD,
-                R.color.background_color_green_lcd,
-                "lcd-green"
-        ),
-        LCD_GREEN_2(
-                LEDWatchThemeMode.LCD,
-                R.color.background_color_green_lcd_2,
-                "lcd-green-2"
-        ),
-        LCD_GRAY_40(
-                LEDWatchThemeMode.LCD,
-                R.color.background_color_gray40_lcd,
-                "lcd-gray-40"
-        ),
-        LCD_GRAY_60(
-                LEDWatchThemeMode.LCD,
-                R.color.background_color_gray60_lcd,
-                "lcd-gray-60"
-        ),
-        LCD_GRAY_80(
-                LEDWatchThemeMode.LCD,
-                R.color.background_color_gray80_lcd,
-                "lcd-gray-80"
-        ),
-        LCD_WHITE(
-                LEDWatchThemeMode.LCD,
-                R.color.background_color_white_lcd,
-                "lcd-white"
-        ),
-        VINTAGE_LED_RED(
-                LEDWatchThemeMode.VINTAGE_LED,
-                R.color.foreground_color_vintage_led_red,
-                "vintage-led-red"
-        ),
-        VINTAGE_LED_GREEN(
-                LEDWatchThemeMode.VINTAGE_LED,
-                R.color.foreground_color_vintage_led_green,
-                "vintage-led-green"
-        ),
-        VINTAGE_LED_BLUE(
-                LEDWatchThemeMode.VINTAGE_LED,
-                R.color.foreground_color_vintage_led_blue,
-                "vintage-led-blue"
-        ),
-        VINTAGE_LED_WHITE(
-                LEDWatchThemeMode.VINTAGE_LED,
-                R.color.foreground_color_vintage_led_white,
-                "vintage-led-white"
-        );
-        private final LEDWatchThemeMode themeMode;
-        private final int color;
-        private final String themeName;
+        private final String resourceName;
+        private final String colorResourceType;
 
-        LEDWatchTheme(LEDWatchThemeMode themeMode, int color, String themeName) {
-            this.themeMode = themeMode;
-            this.color = color;
-            this.themeName = themeName;
+        LEDWatchThemeMode(String colorResourceType, String resourceName) {
+            this.resourceName = resourceName;
+            this.colorResourceType = colorResourceType;
         }
 
-        public LEDWatchThemeMode themeMode() {
-            return themeMode;
+        public String getResourceName() {
+            return resourceName;
         }
 
-        public int color() {
-            return color;
+        public String getColorResourceType() {
+            return colorResourceType;
         }
 
-        public String themeName() {
-            return themeName;
-        }
-
-        public LEDWatchTheme nextTheme() {
-            int ordinal = this.ordinal();
-            int length = LEDWatchTheme.values().length;
-            ordinal = (ordinal + 1) % length;
-            return LEDWatchTheme.values()[ordinal];
-        }
-
-        public LEDWatchTheme previousTheme() {
-            int ordinal = this.ordinal();
-            int length = LEDWatchTheme.values().length;
-            ordinal = (ordinal + length - 1) % length;
-            return LEDWatchTheme.values()[ordinal];
-        }
-
-        public static LEDWatchTheme findThemeNamed(String themeName) {
-            if (themeName == null) {
+        public static LEDWatchThemeMode findThemeModeNamed(String themeModeName) {
+            if (themeModeName == null) {
                 return null;
             }
-            for (LEDWatchTheme theme: LEDWatchTheme.values()) {
-                if (themeName.equals(theme.themeName())) {
-                    return theme;
+            for (LEDWatchThemeMode themeMode : LEDWatchThemeMode.values()) {
+                if (themeModeName.equals(themeMode.resourceName)) {
+                    return themeMode;
                 }
             }
             return null;
+        }
+
+        public LEDWatchThemeMode nextThemeMode() {
+            int ordinal = this.ordinal();
+            int length = LEDWatchThemeMode.values().length;
+            ordinal = (ordinal + 1) % length;
+            return LEDWatchThemeMode.values()[ordinal];
+        }
+    }
+
+    public enum LEDWatchThemeColor {
+        RED("red"),
+        BRIGHT_RED("bright_red"),
+        ORANGE("orange"),
+        AMBER("amber"),
+        YELLOW("yellow"),
+        GREEN("green"),
+        CYAN("cyan"),
+        BLUE("blue"),
+        WHITE("white");
+
+        private final String resourceName;
+
+        LEDWatchThemeColor(String resourceName) {
+            this.resourceName = resourceName;
+        }
+
+        public String getResourceName() {
+            return resourceName;
+        }
+
+        public static LEDWatchThemeColor findThemeColorNamed(String themeColorName) {
+            if (themeColorName == null) {
+                return null;
+            }
+            for (LEDWatchThemeColor themeColor : LEDWatchThemeColor.values()) {
+                if (themeColorName.equals(themeColor.resourceName)) {
+                    return themeColor;
+                }
+            }
+            return null;
+        }
+
+        public LEDWatchThemeColor nextThemeColor() {
+            int ordinal = this.ordinal();
+            int length = LEDWatchThemeColor.values().length;
+            ordinal = (ordinal + 1) % length;
+            return LEDWatchThemeColor.values()[ordinal];
+        }
+    }
+
+    public enum DSEGFontSize {
+        MINI("Mini-"),
+        NORMAL("-");
+
+        private final String filenamePortion;
+
+        DSEGFontSize(String filenamePortion) {
+            this.filenamePortion = filenamePortion;
+        }
+
+        public String getFilenamePortion() {
+            return filenamePortion;
+        }
+    }
+
+    public enum DSEGFontFamily {
+        CLASSIC("Classic"),
+        MODERN("Modern");
+
+        private final String filenamePortion;
+
+        DSEGFontFamily(String filenamePortion) {
+            this.filenamePortion = filenamePortion;
+        }
+
+        public String getFilenamePortion() {
+            return filenamePortion;
+        }
+    }
+
+    public enum DSEGFontWeight {
+        LIGHT("Light"),
+        REGULAR("Regular"),
+        BOLD("Bold");
+
+        private final String filenamePortion;
+
+        DSEGFontWeight(String filenamePortion) {
+            this.filenamePortion = filenamePortion;
+        }
+
+        public String getFilenamePortion() {
+            return filenamePortion;
+        }
+    }
+
+    public enum DSEGFontStyle {
+        NORMAL(""),
+        ITALIC("Italic");
+
+        private final String filenamePortion;
+
+        DSEGFontStyle(String filenamePortion) {
+            this.filenamePortion = filenamePortion;
+        }
+
+        public String getFilenamePortion() {
+            return filenamePortion;
+        }
+    }
+
+    public enum DSEGFontSegments {
+        SEVEN("7"),
+        FOURTEEN("14");
+
+        private final String filenamePortion;
+
+        DSEGFontSegments(String filenamePortion) {
+            this.filenamePortion = filenamePortion;
+        }
+
+        public String getFilenamePortion() {
+            return filenamePortion;
         }
     }
 
     private static final String TAG = "LEDWatchFace";
 
+    private static final int DSEG_FONT_STYLE_NORMAL = 1;
+    private static final int DSEG_FONT_STYLE_ITALIC = 2;
 
-    private static final int FONT_STYLE_NORMAL = 1;
-    private static final int FONT_STYLE_ITALIC = 2;
+    private static final int DSEG_FONT_WEIGHT_LIGHT = 1;
+    private static final int DSEG_FONT_WEIGHT_NORMAL = 2;
+    private static final int DSEG_FONT_WEIGHT_BOLD = 3;
 
-    private static final int FONT_WEIGHT_LIGHT = 1;
-    private static final int FONT_WEIGHT_NORMAL = 2;
-    private static final int FONT_WEIGHT_BOLD = 3;
+    private static final int DSEG_FONT_FAMILY_CLASSIC = 1;
+    private static final int DSEG_FONT_FAMILY_MODERN = 2;
 
-    private static final int FONT_FAMILY_DSEG_CLASSIC = 1;
-    private static final int FONT_FAMILY_DSEG_MODERN = 2;
-
-    private static final int FONT_SIZE_MINI = 1;
-    private static final int FONT_SIZE_REGULAR = 2;
+    private static final int DSEG_FONT_SIZE_MINI = 1;
+    private static final int DSEG_FONT_SIZE_REGULAR = 2;
 
     private static final int TEXT_ALIGN_LEFT = 1;
     private static final int TEXT_ALIGN_CENTER = 2;
@@ -248,7 +262,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
         }
     }
 
-    private class Engine extends CanvasWatchFaceService.Engine {
+    private class Engine extends CanvasWatchFaceService.Engine implements MultiTapEventHandler {
 
         private final Handler mUpdateTimeHandler = new EngineHandler(this);
         private Calendar mCalendar;
@@ -261,7 +275,13 @@ public class LEDWatchFace extends CanvasWatchFaceService {
         };
         private boolean mRegisteredTimeZoneReceiver = false;
 
-        private LEDWatchTheme mTheme;
+        private LEDWatchThemeMode mThemeMode;
+        private LEDWatchThemeColor mThemeColor;
+
+        private DSEGFontFamily mDSEGFontFamily;
+        private DSEGFontSize mDSEGFontSize;
+        private DSEGFontStyle mDSEGFontStyle;
+        private DSEGFontWeight mDSEGFontWeight;
 
         private float mXOffsetMiddle;
         private float mYOffsetMiddle;
@@ -289,9 +309,6 @@ public class LEDWatchFace extends CanvasWatchFaceService {
         private Typeface mSevenSegmentTypeface;
         private Typeface mFourteenSegmentTypeface;
 
-        private final boolean mAutoPosition = true;
-        private final boolean mAutoTextSize = true;
-
         private int mSurfaceWidth;
         private int mSurfaceHeight;
 
@@ -299,17 +316,13 @@ public class LEDWatchFace extends CanvasWatchFaceService {
 
         /* CONFIGURABLE OPTIONS */
 
-        private float mLineSpacing = 0f; // device pixels?  or small/medium/large enum?
-        private int mSegmentsAlpha = 0; // fraction?  or integer?
-        private int mLetterSpacing = 0; // integer 0 to 3, 0 is good default
-        private float mSmallerTextSizeRatio = 0.5f; // fraction, 0.5 is good default
+        private int mFaintAlpha = 0;
+        private int mLetterSpacing = 0;
+        private float mSmallerTextSizeRatio = 0.5f;
 
-        private int mFontStyle = FONT_STYLE_ITALIC;            // normal or italic
-        private int mFontWeight = FONT_WEIGHT_NORMAL;           // light, normal, or bold
-        private int mFontFamily = FONT_FAMILY_DSEG_CLASSIC;     // classic or modern
-        private int mFontSize = FONT_SIZE_REGULAR;            // regular or mini variant
-        private int mForegroundColor = Color.WHITE; // a few selections
-        private int mBackgroundColor = Color.BLACK;  // a few selections
+        private int mForegroundColor = Color.WHITE;
+        private int mBackgroundColor = Color.BLACK;
+        private int mFaintForegroundColor = Color.BLACK;
 
         private Boolean m24Hour = null;
 
@@ -326,42 +339,97 @@ public class LEDWatchFace extends CanvasWatchFaceService {
         // if false: extra "1" segment to show "100%"
         private final boolean m100SansPercent = true;
 
+        private Typeface mSixthsOfAPieTypeface;
+
+        private boolean mEmulatorMode = false;
+
+        private float mPixelDensity;
+
         private int dpToPixels(float dp) {
             final float scale = getResources().getDisplayMetrics().density;
             return (int) (dp * scale + 0.5f);
         }
 
         private int getBackgroundColor() {
-            Resources resources = LEDWatchFace.this.getResources();
             if (mAmbient) {
                 return Color.BLACK;
             }
-            switch (mTheme.themeMode()) {
+            switch (mThemeMode) {
                 case LED:
-                    return Color.BLACK;
-                case LCD:
-                    return resources.getInteger(mTheme.color());
                 case VINTAGE_LED:
                     return Color.BLACK;
                 default:
-                    return Color.BLACK;
+                    return getThemeColor();
             }
         }
 
         private int getForegroundColor() {
-            Resources resources = LEDWatchFace.this.getResources();
             if (mAmbient) {
                 return Color.WHITE;
             }
-            switch (mTheme.themeMode()) {
-                case LED:
-                    return resources.getInteger(mTheme.color());
+            switch (mThemeMode) {
                 case LCD:
                     return Color.BLACK;
-                case VINTAGE_LED:
-                    return resources.getInteger(mTheme.color());
                 default:
-                    return Color.WHITE;
+                    return getThemeColor();
+            }
+        }
+
+        private int getThemeColor() {
+            Resources resources = LEDWatchFace.this.getResources();
+            String resourceName = mThemeMode.colorResourceType + "_color_" + mThemeMode.resourceName + "_" + mThemeColor.resourceName;
+            int resourceId = resources.getIdentifier(resourceName, "color", getPackageName());
+            if (resourceId == 0) {
+                return Color.WHITE;
+            }
+            return resources.getInteger(resourceId);
+        }
+
+        private int getFaintAlpha() {
+            switch (mThemeMode) {
+                case LED:
+                    return 34;
+                case VINTAGE_LED:
+                    return 34;
+                case LCD:
+                    return 12;
+                default:
+                    return 0;
+            }
+        }
+
+        private int getFaintForegroundColor() {
+            if (mAmbient) {
+                return Color.BLACK;
+            }
+            int result = getForegroundColor();
+            result = result & 0x00ffffff;
+            int alpha = getFaintAlpha();
+            result = result | ((alpha & 0xff) << 24);
+            return result;
+        }
+
+        private float getSmallerTextSizeRatio() {
+            switch (mThemeMode) {
+                case LED:
+                case LCD:
+                    return 0.5f;
+                case VINTAGE_LED:
+                    return 0.625f;
+                default:
+                    return 0.5f;
+            }
+        }
+
+        private int getLetterSpacing() {
+            switch (mThemeMode) {
+                case LED:
+                case LCD:
+                    return 0;
+                case VINTAGE_LED:
+                    return 2;
+                default:
+                    return 0;
             }
         }
 
@@ -375,53 +443,54 @@ public class LEDWatchFace extends CanvasWatchFaceService {
 
         private void updateThemeBasedProperties() {
             Resources resources = LEDWatchFace.this.getResources();
-            switch (mTheme.themeMode()) {
+
+            mLetterSpacing = getLetterSpacing();
+            mFaintAlpha = getFaintAlpha();
+            mSmallerTextSizeRatio = getSmallerTextSizeRatio();
+
+            switch (mThemeMode) {
                 case LED:
-                    mFontStyle = FONT_STYLE_ITALIC;
-                    mFontWeight = FONT_WEIGHT_NORMAL;
-                    mFontSize = FONT_SIZE_REGULAR;
-                    mFontFamily = FONT_FAMILY_DSEG_CLASSIC;
-                    mLineSpacing = resources.getDimension(R.dimen.line_spacing);
-                    mLetterSpacing = 0;
-                    mSegmentsAlpha = resources.getInteger(R.integer.segments_alpha_opacity);
-                    mSmallerTextSizeRatio = 0.5f;
-                    break;
-                case LCD:
-                    mFontStyle = FONT_STYLE_ITALIC;
-                    mFontWeight = FONT_WEIGHT_NORMAL;
-                    mFontSize = FONT_SIZE_REGULAR;
-                    mFontFamily = FONT_FAMILY_DSEG_CLASSIC;
-                    mLineSpacing = resources.getDimension(R.dimen.line_spacing);
-                    mLetterSpacing = 0;
-                    mSegmentsAlpha = resources.getInteger(R.integer.segments_alpha_opacity_lcd);
-                    mSmallerTextSizeRatio = 0.5f;
+                    mDSEGFontFamily = DSEGFontFamily.CLASSIC;
+                    mDSEGFontSize = DSEGFontSize.NORMAL;
+                    mDSEGFontStyle = DSEGFontStyle.ITALIC;
+                    mDSEGFontWeight = DSEGFontWeight.REGULAR;
                     break;
                 case VINTAGE_LED:
-                    mFontStyle = FONT_STYLE_ITALIC;
-                    mFontWeight = FONT_WEIGHT_LIGHT;
-                    mFontSize = FONT_SIZE_REGULAR;
-                    mFontFamily = FONT_FAMILY_DSEG_CLASSIC;
-                    mLineSpacing = dpToPixels(16);
-                    mLetterSpacing = 2;
-                    mSegmentsAlpha = resources.getInteger(R.integer.segments_alpha_opacity_vintage_led);
-                    mSmallerTextSizeRatio = 0.625f;
+                    mDSEGFontFamily = DSEGFontFamily.CLASSIC;
+                    mDSEGFontSize = DSEGFontSize.NORMAL;
+                    mDSEGFontStyle = DSEGFontStyle.ITALIC;
+                    mDSEGFontWeight = DSEGFontWeight.LIGHT;
+                    break;
+                case LCD:
+                    mDSEGFontFamily = DSEGFontFamily.CLASSIC;
+                    mDSEGFontSize = DSEGFontSize.NORMAL;
+                    mDSEGFontStyle = DSEGFontStyle.ITALIC;
+                    mDSEGFontWeight = DSEGFontWeight.REGULAR;
                     break;
                 default:
-                    mFontStyle = FONT_STYLE_ITALIC;
-                    mFontWeight = FONT_WEIGHT_NORMAL;
-                    mFontSize = FONT_SIZE_REGULAR;
-                    mFontFamily = FONT_FAMILY_DSEG_CLASSIC;
-                    mLineSpacing = resources.getDimension(R.dimen.line_spacing);
-                    mLetterSpacing = 0;
-                    mSegmentsAlpha = resources.getInteger(R.integer.segments_alpha_opacity);
-                    mSmallerTextSizeRatio = 0.5f;
+                    mDSEGFontFamily = DSEGFontFamily.CLASSIC;
+                    mDSEGFontSize = DSEGFontSize.NORMAL;
+                    mDSEGFontStyle = DSEGFontStyle.ITALIC;
+                    mDSEGFontWeight = DSEGFontWeight.REGULAR;
                     break;
             }
+        }
+
+        private String getFontFilename(int segments) {
+            String result = "fonts/DSEG";
+            result += segments;
+            result += mDSEGFontFamily.getFilenamePortion();
+            result += mDSEGFontSize.getFilenamePortion();
+            result += mDSEGFontWeight.getFilenamePortion();
+            result += mDSEGFontStyle.getFilenamePortion();
+            result += ".ttf";
+            return result;
         }
 
         private void updateColors() {
             mForegroundColor = getForegroundColor();
             mBackgroundColor = getBackgroundColor();
+            mFaintForegroundColor = getFaintForegroundColor();
             mBackgroundPaint = new Paint();
             mBackgroundPaint.setColor(mBackgroundColor);
         }
@@ -430,11 +499,11 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             Resources resources = LEDWatchFace.this.getResources();
             mSevenSegmentTypeface = Typeface.createFromAsset(
                     resources.getAssets(),
-                    getFontFilename(7, mFontStyle, mFontWeight, mFontFamily, mFontSize)
+                    getFontFilename(7)
             );
             mFourteenSegmentTypeface = Typeface.createFromAsset(
                     resources.getAssets(),
-                    getFontFilename(14, mFontStyle, mFontWeight, mFontFamily, mFontSize)
+                    getFontFilename(14)
             );
         }
 
@@ -444,6 +513,14 @@ public class LEDWatchFace extends CanvasWatchFaceService {
         public void onCreate(SurfaceHolder holder) {
             super.onCreate(holder);
 
+            cancelMultiTap();
+
+            if (Build.MODEL.startsWith("sdk_") || Build.FINGERPRINT.contains("/sdk_")) {
+                mEmulatorMode = true;
+            }
+            mPixelDensity = getResources().getDisplayMetrics().density;
+
+
             WatchFaceStyle.Builder styleBuilder = new WatchFaceStyle.Builder(LEDWatchFace.this);
             styleBuilder.setAcceptsTapEvents(true);
             styleBuilder.setStatusBarGravity(Gravity.RIGHT | Gravity.TOP);
@@ -451,10 +528,17 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             WatchFaceStyle style = styleBuilder.build();
             setWatchFaceStyle(style);
 
+            Resources resources = LEDWatchFace.this.getResources();
+
             Context context = getBaseContext();
             mSharedPreferences = context.getSharedPreferences(
                     getString(R.string.preference_file_key),
                     Context.MODE_PRIVATE
+            );
+
+            mSixthsOfAPieTypeface = Typeface.createFromAsset(
+                    resources.getAssets(),
+                    "fonts/sixths-of-a-pie.ttf"
             );
 
             getThemePreference();
@@ -471,28 +555,22 @@ public class LEDWatchFace extends CanvasWatchFaceService {
         }
 
         private void getThemePreference() {
-            String themeName = mSharedPreferences.getString(
-                    getString(R.string.theme_default_key),
-                    null
-            );
-            if (themeName == null) {
-                Log.d(TAG, "got theme name (null)");
-            } else {
-                Log.d(TAG, "got theme name " + themeName);
+            String themeColorName = mSharedPreferences.getString("theme_color", null);
+            mThemeColor = LEDWatchThemeColor.findThemeColorNamed(themeColorName);
+            if (mThemeColor == null) {
+                mThemeColor = LEDWatchThemeColor.WHITE;
             }
-            mTheme = LEDWatchTheme.findThemeNamed(themeName);
-            if (mTheme == null) {
-                mTheme = LEDWatchTheme.LED_RED;
+            String themeModeName = mSharedPreferences.getString("theme_mode", null);
+            mThemeMode = LEDWatchThemeMode.findThemeModeNamed(themeModeName);
+            if (mThemeMode == null) {
+                mThemeMode = LEDWatchThemeMode.LED;
             }
         }
 
         private void saveThemePreference() {
             SharedPreferences.Editor editor = mSharedPreferences.edit();
-            Log.d(TAG, "saving theme name " + mTheme.themeName());
-            editor.putString(
-                    getString(R.string.theme_default_key),
-                    mTheme.themeName()
-            );
+            editor.putString("theme_color", mThemeColor.resourceName);
+            editor.putString("theme_mode", mThemeMode.resourceName);
             editor.commit();
         }
 
@@ -539,54 +617,60 @@ public class LEDWatchFace extends CanvasWatchFaceService {
         }
 
         @Override
-        public void onApplyWindowInsets(WindowInsets insets) {
-            super.onApplyWindowInsets(insets);
-
-            Resources resources = LEDWatchFace.this.getResources();
-            mIsRound = insets.isRound();
-            DisplayMetrics metrics = resources.getDisplayMetrics();
-            mSurfaceWidth = metrics.widthPixels;
-            mSurfaceHeight = metrics.heightPixels;
-
+        public void onSurfaceChanged(SurfaceHolder holder, int format, int width, int height) {
+            cancelMultiTap();
+            super.onSurfaceChanged(holder, format, width, height);
+            mPixelDensity = getResources().getDisplayMetrics().density;
+            mSurfaceWidth = width;
+            mSurfaceHeight = height;
+            mIsRound = getApplicationContext().getResources().getConfiguration().isScreenRound();
             updateProperties();
             mBackgroundBitmap = null;
         }
 
+//        @Override
+//        public void onApplyWindowInsets(WindowInsets insets) {
+//            super.onApplyWindowInsets(insets);
+//
+//            Resources resources = LEDWatchFace.this.getResources();
+//            mIsRound = insets.isRound();
+//            DisplayMetrics metrics = resources.getDisplayMetrics();
+//            mSurfaceWidth = metrics.widthPixels;
+//            mSurfaceHeight = metrics.heightPixels;
+//
+//            updateProperties();
+//            mBackgroundBitmap = null;
+//        }
+
         private void updateSizeBasedProperties() {
             Resources resources = LEDWatchFace.this.getResources();
 
-            if (mAutoPosition) {
-                mXOffsetMiddle = Math.round(mSurfaceWidth / 2f);
-                mXOffsetTopLeft = Math.round(mSurfaceWidth / 2f);
-                mXOffsetTopRight = Math.round(mSurfaceWidth / 2f);
-                mXOffsetBottomLeft = Math.round(mSurfaceWidth / 2f);
-                mXOffsetBottomRight = Math.round(mSurfaceWidth / 2f);
-            } else {
-                mXOffsetMiddle = resources.getDimension(mIsRound ? R.dimen.digital_x_offset_round : R.dimen.digital_x_offset);
-                mXOffsetTopLeft = mXOffsetMiddle;
-                mXOffsetTopRight = mXOffsetMiddle;
-                mXOffsetBottomLeft = mXOffsetMiddle;
-                mXOffsetBottomRight = mXOffsetMiddle;
-            }
+            mXOffsetMiddle = Math.round(mSurfaceWidth / 2f);
+            mXOffsetTopLeft = Math.round(mSurfaceWidth / 2f);
+            mXOffsetTopRight = Math.round(mSurfaceWidth / 2f);
+            mXOffsetBottomLeft = Math.round(mSurfaceWidth / 2f);
+            mXOffsetBottomRight = Math.round(mSurfaceWidth / 2f);
 
             float textSize;
 
-            if (mAutoTextSize) {
-                Rect bounds = new Rect();
-                mTextPaintMiddle.setTextSize(mSurfaceWidth);
-                String sampleText = "88:88";
-                if (mLetterSpacing > 0) {
-                    sampleText = addLetterSpacing(sampleText, mLetterSpacing, TEXT_ALIGN_CENTER);
-                }
+            Rect bounds = new Rect();
+            mTextPaintMiddle.setTextSize(mSurfaceWidth);
+            String sampleText = "88:88";
+            if (mLetterSpacing > 0) {
+                sampleText = addLetterSpacing(sampleText, mLetterSpacing, TEXT_ALIGN_CENTER);
+            }
+            sampleText = ":" + sampleText + ":";
 
-                mTextPaintMiddle.getTextBounds(sampleText, 0, sampleText.length(), bounds);
-                textSize = (float) Math.floor(mSurfaceWidth * (mIsRound ? 0.85f : 0.9f)
-                        / (bounds.right - bounds.left)
-                        * (bounds.bottom - bounds.top));
-            } else {
-                textSize = resources.getDimension(
-                        mIsRound ? R.dimen.digital_text_size_round : R.dimen.digital_text_size
-                );
+            mTextPaintMiddle.getTextBounds(sampleText, 0, sampleText.length(), bounds);
+
+            textSize = (mSurfaceWidth - dpToPixels(8)) * 1f / bounds.width() * bounds.height();
+
+            int width = bounds.width();
+            int height = bounds.height();
+            if (mIsRound) {
+                float angle = (float) Math.atan2(height, width);
+                float cosine = (float) Math.cos(angle);
+                textSize = textSize * cosine;
             }
 
             mTextPaintMiddle.setTextSize(textSize);
@@ -595,19 +679,15 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             mTextPaintBottomLeft.setTextSize(Math.round(textSize * mSmallerTextSizeRatio));
             mTextPaintBottomRight.setTextSize(Math.round(textSize * mSmallerTextSizeRatio));
 
-            if (mAutoPosition) {
-                mYOffsetMiddle = Math.round(mSurfaceHeight / 2f + textSize / 2f);
-                mYOffsetTopLeft = mYOffsetMiddle - textSize - mLineSpacing;
-                mYOffsetTopRight = mYOffsetMiddle - textSize - mLineSpacing;
-                mYOffsetBottomLeft = mYOffsetMiddle + Math.round(textSize * mSmallerTextSizeRatio) + mLineSpacing;
-                mYOffsetBottomRight = mYOffsetMiddle + Math.round(textSize * mSmallerTextSizeRatio) + mLineSpacing;
-            } else {
-                mYOffsetMiddle = resources.getDimension(R.dimen.digital_y_offset);
-                mYOffsetTopLeft = mYOffsetMiddle - textSize - mLineSpacing;
-                mYOffsetTopRight = mYOffsetMiddle - textSize - mLineSpacing;
-                mYOffsetBottomLeft = mYOffsetMiddle + Math.round(textSize * mSmallerTextSizeRatio) + mLineSpacing;
-                mYOffsetBottomRight = mYOffsetMiddle + Math.round(textSize * mSmallerTextSizeRatio) + mLineSpacing;
-            }
+            Log.d(TAG, "mSurfaceHeight = " + mSurfaceHeight);
+
+            int mLineSpacingDp = (int)Math.round(textSize * mSmallerTextSizeRatio * 0.5);
+
+            mYOffsetMiddle = Math.round(mSurfaceHeight / 2f + textSize / 2f);
+            mYOffsetTopLeft = mYOffsetMiddle - textSize - mLineSpacingDp;
+            mYOffsetTopRight = mYOffsetMiddle - textSize - mLineSpacingDp;
+            mYOffsetBottomLeft = mYOffsetMiddle + Math.round(textSize * mSmallerTextSizeRatio) + mLineSpacingDp;
+            mYOffsetBottomRight = mYOffsetMiddle + Math.round(textSize * mSmallerTextSizeRatio) + mLineSpacingDp;
 
         }
 
@@ -686,24 +766,55 @@ public class LEDWatchFace extends CanvasWatchFaceService {
                     // The user has started a different gesture or otherwise cancelled the tap.
                     break;
                 case TAP_TYPE_TAP:
-                    float xx = x;
-                    float yy = y;
-                    if (yy >= mSurfaceHeight / 3 && yy <= mSurfaceHeight * 2 / 3) {
-                        if (xx < mSurfaceWidth / 2) {
-                            mTheme = mTheme.nextTheme();
-                            saveThemePreference();
-                            updateProperties();
-                            mBackgroundBitmap = null;
-                            invalidate();
-                        } else {
-                            mTheme = mTheme.previousTheme();
-                            saveThemePreference();
-                            updateProperties();
-                            mBackgroundBitmap = null;
-                            invalidate();
-                        }
-                    }
+                    // float xx = x;
+                    // float yy = y;
+                    multiTapEvent(MULTI_TAP_TYPE_TIME);
                     break;
+            }
+        }
+
+        private final int MULTI_TAP_TYPE_TIME = 1;
+        private final int MULTI_TAP_TYPE_TOP = 2;
+        private final int MULTI_TAP_TYPE_BOTTOM = 3;
+
+        public void onMultiTapCommand(int type, int numberOfTaps) {
+            switch (type) {
+                case MULTI_TAP_TYPE_TOP:
+                    break;
+                case MULTI_TAP_TYPE_BOTTOM:
+                    break;
+                case MULTI_TAP_TYPE_TIME:
+                    switch (numberOfTaps) {
+                        case 2:
+                            mThemeColor = mThemeColor.nextThemeColor();
+                            saveThemePreference();
+                            updateProperties();
+                            mBackgroundBitmap = null;
+                            invalidate();
+                            break;
+                        case 3:
+                            mThemeMode = mThemeMode.nextThemeMode();
+                            saveThemePreference();
+                            updateProperties();
+                            mBackgroundBitmap = null;
+                            invalidate();
+                            break;
+                    }
+            }
+        }
+
+        private MultiTapHandler mMultiTapHandler = null;
+
+        private void multiTapEvent(int type) {
+            if (mMultiTapHandler == null) {
+                mMultiTapHandler = new MultiTapHandler(this);
+            }
+            mMultiTapHandler.onTapEvent(type);
+        }
+
+        private void cancelMultiTap() {
+            if (mMultiTapHandler != null) {
+                mMultiTapHandler.cancel();
             }
         }
 
@@ -715,7 +826,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             if (mAmbient) {
                 canvas.drawColor(Color.BLACK);
             } else {
-                if (mBackgroundBitmap != null && mSegmentsAlpha > 0) {
+                if (mBackgroundBitmap != null && mFaintAlpha > 0) {
                     canvas.drawBitmap(mBackgroundBitmap, 0, 0, null);
                 } else {
                     canvas.drawRect(0, 0, bounds.width(), bounds.height(), mBackgroundPaint);
@@ -740,6 +851,9 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             }
 
             int hour12 = mCalendar.get(Calendar.HOUR);
+            if (hour12 == 0) {
+                hour12 = 12;
+            }
             int hour24 = mCalendar.get(Calendar.HOUR_OF_DAY);
             int minute = mCalendar.get(Calendar.MINUTE);
             int second = mCalendar.get(Calendar.SECOND);
@@ -786,6 +900,8 @@ public class LEDWatchFace extends CanvasWatchFaceService {
                 textMiddle = String.format(Locale.getDefault(), "%02d:%02d", hour24, minute);
             } else {
                 textMiddle = String.format(Locale.getDefault(), "%02d:%02d", hour12, minute);
+
+                Log.d(TAG, "12 hour time: " + textMiddle);
 
                 // replace leading zero with space (all-segments-off)
                 if (textMiddle.charAt(0) == '0') {
@@ -897,7 +1013,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             if (mBackgroundBitmap != null) {
                 return;
             }
-            if (mSegmentsAlpha <= 0) {
+            if (mFaintAlpha <= 0) {
                 return;
             }
 
@@ -936,11 +1052,11 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             mTextPaintBottomLeft.setColor(mForegroundColor);
             mTextPaintBottomRight.setAntiAlias(true);
             mTextPaintBottomRight.setColor(mForegroundColor);
-            mTextPaintMiddle.setAlpha(mSegmentsAlpha);
-            mTextPaintTopLeft.setAlpha(mSegmentsAlpha);
-            mTextPaintTopRight.setAlpha(mSegmentsAlpha);
-            mTextPaintBottomLeft.setAlpha(mSegmentsAlpha);
-            mTextPaintBottomRight.setAlpha(mSegmentsAlpha);
+            mTextPaintMiddle.setAlpha(mFaintAlpha);
+            mTextPaintTopLeft.setAlpha(mFaintAlpha);
+            mTextPaintTopRight.setAlpha(mFaintAlpha);
+            mTextPaintBottomLeft.setAlpha(mFaintAlpha);
+            mTextPaintBottomRight.setAlpha(mFaintAlpha);
             backgroundCanvas.drawText(allSegmentsOnMiddle, mXOffsetMiddle, mYOffsetMiddle, mTextPaintMiddle);
             backgroundCanvas.drawText(allSegmentsOnTopLeft, mXOffsetTopLeft, mYOffsetTopLeft, mTextPaintTopLeft);
             backgroundCanvas.drawText(allSegmentsOnTopRight, mXOffsetTopRight, mYOffsetTopRight, mTextPaintTopRight);
@@ -986,63 +1102,6 @@ public class LEDWatchFace extends CanvasWatchFaceService {
                 mUpdateTimeHandler.sendEmptyMessageDelayed(MSG_UPDATE_TIME, delayMs);
             }
         }
-
-        /**
-         * Build the name of a font resources, returning it as a string.
-         *
-         * @param segments   an integer, 7 or 14.
-         * @param fontStyle  one of the FONT_STYLE_* constants.
-         * @param fontWeight one of the FONT_WEIGHT_* constants.
-         * @param fontFamily one of the FONT_FAMILY_* constants.
-         * @param fontSize   one of the FONT_SIZE_* constants.
-         * @return a font resource name.
-         */
-        private String getFontFilename(
-                int segments,
-                int fontStyle,
-                int fontWeight,
-                int fontFamily,
-                int fontSize
-        ) {
-            String result = "fonts/DSEG";
-            result += segments;
-            switch (fontFamily) {
-                case FONT_FAMILY_DSEG_CLASSIC:
-                    result += "Classic";
-                    break;
-                case FONT_FAMILY_DSEG_MODERN:
-                    result += "Modern";
-                    break;
-            }
-            switch (fontSize) {
-                case FONT_SIZE_MINI:
-                    result += "Mini-";
-                    break;
-                default:
-                    result += "-";
-                    break;
-            }
-            switch (fontWeight) {
-                case FONT_WEIGHT_LIGHT:
-                    result += "Light";
-                    break;
-                case FONT_WEIGHT_NORMAL:
-                    result += "Regular";
-                    break;
-                case FONT_WEIGHT_BOLD:
-                    result += "Bold";
-                    break;
-            }
-            switch (fontStyle) {
-                case FONT_STYLE_NORMAL:
-                    result += ".ttf";
-                    break;
-                case FONT_STYLE_ITALIC:
-                    result += "Italic.ttf";
-                    break;
-            }
-            return result;
-        }
     }
 
     /**
@@ -1059,18 +1118,24 @@ public class LEDWatchFace extends CanvasWatchFaceService {
      * @return the resulting string
      */
     private static String addLetterSpacing(String s, int spacing, int textAlign) {
-        int length = s.length();
-        int lastIndex = length - 1;
-        int firstIndex = 1;
-        StringBuffer resultBuffer = new StringBuffer(s);
+        boolean insertSpaceAtEnd = false;
+        boolean insertSpaceAtBeginning = false;
         if (textAlign == TEXT_ALIGN_LEFT) {
-            firstIndex = 0;
+            insertSpaceAtBeginning = true;
         } else if (textAlign == TEXT_ALIGN_RIGHT) {
-            lastIndex = length;
+            insertSpaceAtEnd = true;
         }
-        for (int i = lastIndex; i >= firstIndex; i -= 1) {
-            // '.' at char 0 is PM indicator.
-            // always occurs before blank numeral or '1'.
+
+        int halfSpacing = (int)Math.round(spacing / 2f);
+        StringBuffer resultBuffer = new StringBuffer(s);
+
+        if (insertSpaceAtEnd) {
+            for (int j = 1; j <= halfSpacing; j += 1) {
+                resultBuffer.append(' ');
+            }
+        }
+        for (int i = s.length() - 1; i >= 1; i -= 1) {
+            // "A.B" => "A .B"
             if (i > 0 && s.charAt(i - 1) == '.') {
                 continue;
             }
@@ -1078,6 +1143,12 @@ public class LEDWatchFace extends CanvasWatchFaceService {
                 resultBuffer.insert(i, ' ');
             }
         }
+        if (insertSpaceAtBeginning) {
+            for (int j = 1; j <= halfSpacing; j += 1) {
+                resultBuffer.insert(0, ' ');
+            }
+        }
         return resultBuffer.toString();
     }
+
 }

@@ -11,30 +11,55 @@
 
     <color name="background_color_black">#000000</color>
 
-    <color name="foreground_color_greenscreen">#57ff57</color>
-
+    <!-- legacy -->
     <color name="foreground_color_red">#ff0000</color>
+    <color name="foreground_color_bright_red">#ff9999</color>
     <color name="foreground_color_orange">#ff9933</color>
     <color name="foreground_color_amber">#eacf4c</color>
     <color name="foreground_color_yellow">#ffff00</color>
     <color name="foreground_color_green">#57ff57</color>
-    <color name="foreground_color_blue">#00ccff</color>
+    <color name="foreground_color_cyan">#00ccff</color>
+    <color name="foreground_color_blue">#9999ff</color>
     <color name="foreground_color_white">#ffffff</color>
 
-    <color name="foreground_color_vintage_led_red">#ff6699</color>
-    <color name="foreground_color_vintage_led_white">#ffffff</color>
-    <color name="foreground_color_vintage_led_green">#57ff57</color>
-    <color name="foreground_color_vintage_led_blue">#00ccff</color>
+    <color name="foreground_color_led_red">#ff0000</color>
+    <color name="foreground_color_led_bright_red">#ff9999</color>
+    <color name="foreground_color_led_orange">#ff9933</color>
+    <color name="foreground_color_led_amber">#eacf4c</color>
+    <color name="foreground_color_led_yellow">#ffff00</color>
+    <color name="foreground_color_led_green">#57ff57</color>
+    <color name="foreground_color_led_cyan">#00ccff</color>
+    <color name="foreground_color_led_blue">#9999ff</color>
+    <color name="foreground_color_led_white">#ffffff</color>
 
-    <color name="background_color_orange_lcd">#fb7c00</color>
+    <color name="foreground_color_vintage_led_red">#ff0000</color>
+    <color name="foreground_color_vintage_led_bright_red">#ff9999</color>
+    <color name="foreground_color_vintage_led_orange">#ff9933</color>
+    <color name="foreground_color_vintage_led_amber">#eacf4c</color>
+    <color name="foreground_color_vintage_led_yellow">#ffff00</color>
+    <color name="foreground_color_vintage_led_green">#57ff57</color>
+    <color name="foreground_color_vintage_led_cyan">#00ccff</color>
+    <color name="foreground_color_vintage_led_blue">#9999ff</color>
+    <color name="foreground_color_vintage_led_white">#ffffff</color>
+
+    <color name="background_color_lcd_red">#ff0000</color>
+    <color name="background_color_lcd_bright_red">#ff9999</color>
+    <color name="background_color_lcd_orange">#fb7c00</color>
+    <color name="background_color_lcd_amber">#eacf4c</color>
+    <color name="background_color_lcd_yellow">#ffff00</color>
+    <color name="background_color_lcd_green">#57ff57</color>
+    <color name="background_color_lcd_cyan">#00ccff</color>
+    <color name="background_color_lcd_blue">#9999ff</color>
+    <color name="background_color_lcd_white">#cccccc</color>
+
+    <!-- legacy -->
     <color name="background_color_green_lcd">#87ad34</color>
     <color name="background_color_green_lcd_2">#b9e200</color>
-    <color name="background_color_gray40_lcd">#666666</color>
-    <color name="background_color_gray60_lcd">#999999</color>
-    <color name="background_color_gray80_lcd">#cccccc</color>
-    <color name="background_color_white_lcd">#ffffff</color>
 
+    <!-- legacy -->
+    <!--
     <color name="foreground_color_dark_gray_lcd">#222222</color>
     <color name="foreground_color_black_lcd">#000000</color>
+    -->
 
 </resources>
