@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">LED Watch</string>
+    <string name="led_watch_title">LED Watch 3000</string>
+    <string name="led_watch_text">This phone app exists solely to install the LED Watch 3000 watch face on older Android Wear watches.  If your watch runs Android Wear 2.x or Wear OS, you should not need this phone app at all.</string>
 </resources>
