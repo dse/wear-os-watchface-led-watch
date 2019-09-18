@@ -293,6 +293,8 @@ public class LEDWatchFace extends CanvasWatchFaceService {
         private float mYOffsetBottomLeft;
         private float mXOffsetBottomRight;
         private float mYOffsetBottomRight;
+        private float mXOffsetBottomRight2;
+        private float mYOffsetBottomRight2;
 
         private Paint mBackgroundPaint = null;
         private Paint mTextPaintMiddle = null;
@@ -300,6 +302,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
         private Paint mTextPaintTopRight = null;
         private Paint mTextPaintBottomLeft = null;
         private Paint mTextPaintBottomRight = null;
+        private Paint mTextPaintBottomRight2 = null;
 
         private boolean mLowBitAmbient;
         private boolean mBurnInProtection;
@@ -399,7 +402,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
         }
 
         private int getFaintForegroundColor() {
-            if (mAmbient) {
+            if (mLowBitAmbient) {
                 return Color.BLACK;
             }
             int result = getForegroundColor();
@@ -548,6 +551,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             mTextPaintTopRight = new Paint();
             mTextPaintBottomLeft = new Paint();
             mTextPaintBottomRight = new Paint();
+            mTextPaintBottomRight2 = new Paint();
 
             mCalendar = Calendar.getInstance();
             updateProperties();
@@ -678,17 +682,26 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             mTextPaintTopRight.setTextSize(Math.round(textSize * mSmallerTextSizeRatio));
             mTextPaintBottomLeft.setTextSize(Math.round(textSize * mSmallerTextSizeRatio));
             mTextPaintBottomRight.setTextSize(Math.round(textSize * mSmallerTextSizeRatio));
+            mTextPaintBottomRight2.setTextSize(Math.round(textSize * mSmallerTextSizeRatio));
 
             Log.d(TAG, "mSurfaceHeight = " + mSurfaceHeight);
 
-            int mLineSpacingDp = (int)Math.round(textSize * mSmallerTextSizeRatio * 0.5);
+            int mLineSpacingDp = (int) Math.round(textSize * mSmallerTextSizeRatio * 0.5);
 
             mYOffsetMiddle = Math.round(mSurfaceHeight / 2f + textSize / 2f);
             mYOffsetTopLeft = mYOffsetMiddle - textSize - mLineSpacingDp;
             mYOffsetTopRight = mYOffsetMiddle - textSize - mLineSpacingDp;
             mYOffsetBottomLeft = mYOffsetMiddle + Math.round(textSize * mSmallerTextSizeRatio) + mLineSpacingDp;
             mYOffsetBottomRight = mYOffsetMiddle + Math.round(textSize * mSmallerTextSizeRatio) + mLineSpacingDp;
+            mYOffsetBottomRight2 = mYOffsetMiddle + Math.round(textSize * mSmallerTextSizeRatio) + mLineSpacingDp;
 
+            Rect bounds1 = new Rect();
+            Rect bounds2 = new Rect();
+            String text1 = addLetterSpacing("888", mLetterSpacing, TEXT_ALIGN_LEFT, ':');
+            String text2 = addLetterSpacing("888", mLetterSpacing, TEXT_ALIGN_CENTER, ':');
+            mTextPaintBottomRight.getTextBounds(text1, 0, text1.length(), bounds1);
+            mTextPaintBottomRight.getTextBounds(text2, 0, text2.length(), bounds2);
+            mXOffsetBottomRight2 = mXOffsetMiddle + Math.round(bounds1.width() - bounds2.width() / 2f);
         }
 
         @Override
@@ -727,29 +740,34 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             mTextPaintTopRight.setTextAlign(Paint.Align.LEFT);
             mTextPaintBottomLeft.setTextAlign(Paint.Align.RIGHT);
             mTextPaintBottomRight.setTextAlign(Paint.Align.LEFT);
+            mTextPaintBottomRight2.setTextAlign(Paint.Align.CENTER);
             mTextPaintMiddle.setTypeface(mSevenSegmentTypeface);
             mTextPaintTopLeft.setTypeface(mFourteenSegmentTypeface);
             mTextPaintTopRight.setTypeface(mSevenSegmentTypeface);
             mTextPaintBottomLeft.setTypeface(mFourteenSegmentTypeface);
             mTextPaintBottomRight.setTypeface(mSevenSegmentTypeface);
+            mTextPaintBottomRight2.setTypeface(mSixthsOfAPieTypeface);
             if (mLowBitAmbient) {
                 mTextPaintMiddle.setAntiAlias(false);
                 mTextPaintTopLeft.setAntiAlias(false);
                 mTextPaintTopRight.setAntiAlias(false);
                 mTextPaintBottomLeft.setAntiAlias(false);
                 mTextPaintBottomRight.setAntiAlias(false);
+                mTextPaintBottomRight2.setAntiAlias(false);
             } else {
                 mTextPaintMiddle.setAntiAlias(true);
                 mTextPaintTopLeft.setAntiAlias(true);
                 mTextPaintTopRight.setAntiAlias(true);
                 mTextPaintBottomLeft.setAntiAlias(true);
                 mTextPaintBottomRight.setAntiAlias(true);
+                mTextPaintBottomRight2.setAntiAlias(true);
             }
             mTextPaintMiddle.setColor(mForegroundColor);
             mTextPaintTopLeft.setColor(mForegroundColor);
             mTextPaintTopRight.setColor(mForegroundColor);
             mTextPaintBottomLeft.setColor(mForegroundColor);
             mTextPaintBottomRight.setColor(mForegroundColor);
+            mTextPaintBottomRight2.setColor(mForegroundColor);
         }
 
         /**
@@ -823,7 +841,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             createBackgroundBitmap(canvas.getWidth(), canvas.getHeight());
 
             // Draw the background.
-            if (mAmbient) {
+            if (mLowBitAmbient) {
                 canvas.drawColor(Color.BLACK);
             } else {
                 if (mBackgroundBitmap != null && mFaintAlpha > 0) {
@@ -901,8 +919,6 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             } else {
                 textMiddle = String.format(Locale.getDefault(), "%02d:%02d", hour12, minute);
 
-                Log.d(TAG, "12 hour time: " + textMiddle);
-
                 // replace leading zero with space (all-segments-off)
                 if (textMiddle.charAt(0) == '0') {
                     textMiddle = "!" + textMiddle.substring(1);
@@ -919,8 +935,12 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             }
 
             // seconds
-            if (mShowSeconds && !mAmbient) {
-                textBottomRight = String.format(Locale.getDefault(), "!%02d", second);
+            if (mShowSeconds) {
+                if (mAmbient) {
+                    textBottomRight = new String(Character.toChars(0xf000 + second / 10));
+                } else {
+                    textBottomRight = String.format(Locale.getDefault(), "!%02d", second);
+                }
             }
 
             if (mShowBatteryLevel) {
@@ -979,7 +999,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
                 if (mShowBatteryLevel && textBottomLeft != null) {
                     textBottomLeft = addLetterSpacing(textBottomLeft, mLetterSpacing, TEXT_ALIGN_RIGHT);
                 }
-                if (mShowSeconds && textBottomRight != null) {
+                if (mShowSeconds && textBottomRight != null && !mAmbient) {
                     textBottomRight = addLetterSpacing(textBottomRight, mLetterSpacing, TEXT_ALIGN_LEFT);
                 }
             }
@@ -1002,12 +1022,16 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             }
             if (mShowSeconds && textBottomRight != null) {
                 textBottomRight = textBottomRight.replaceAll(",", "");
-                canvas.drawText(textBottomRight, mXOffsetBottomRight, mYOffsetBottomRight, mTextPaintBottomRight);
+                if (mAmbient) {
+                    canvas.drawText(textBottomRight, mXOffsetBottomRight2, mYOffsetBottomRight2, mTextPaintBottomRight2);
+                } else {
+                    canvas.drawText(textBottomRight, mXOffsetBottomRight, mYOffsetBottomRight, mTextPaintBottomRight);
+                }
             }
         }
 
         private void createBackgroundBitmap(int width, int height) {
-            if (mAmbient) {
+            if (mLowBitAmbient) {
                 return;
             }
             if (mBackgroundBitmap != null) {
@@ -1036,12 +1060,15 @@ public class LEDWatchFace extends CanvasWatchFaceService {
                 allSegmentsOnBottomRight = addLetterSpacing(allSegmentsOnBottomRight, mLetterSpacing, TEXT_ALIGN_LEFT);
             }
 
+            if (mAmbient) {
+                allSegmentsOnBottomRight = "\uf006";
+            }
+
             Canvas backgroundCanvas = new Canvas();
             mBackgroundBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
             backgroundCanvas.setBitmap(mBackgroundBitmap);
             backgroundCanvas.drawRect(0, 0, width, height, mBackgroundPaint);
 
-            int rForegroundColor = getForegroundColor();
             mTextPaintMiddle.setAntiAlias(true);
             mTextPaintMiddle.setColor(mForegroundColor);
             mTextPaintTopLeft.setAntiAlias(true);
@@ -1052,21 +1079,29 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             mTextPaintBottomLeft.setColor(mForegroundColor);
             mTextPaintBottomRight.setAntiAlias(true);
             mTextPaintBottomRight.setColor(mForegroundColor);
+            mTextPaintBottomRight2.setAntiAlias(true);
+            mTextPaintBottomRight2.setColor(mForegroundColor);
             mTextPaintMiddle.setAlpha(mFaintAlpha);
             mTextPaintTopLeft.setAlpha(mFaintAlpha);
             mTextPaintTopRight.setAlpha(mFaintAlpha);
             mTextPaintBottomLeft.setAlpha(mFaintAlpha);
             mTextPaintBottomRight.setAlpha(mFaintAlpha);
+            mTextPaintBottomRight2.setAlpha(mFaintAlpha);
             backgroundCanvas.drawText(allSegmentsOnMiddle, mXOffsetMiddle, mYOffsetMiddle, mTextPaintMiddle);
             backgroundCanvas.drawText(allSegmentsOnTopLeft, mXOffsetTopLeft, mYOffsetTopLeft, mTextPaintTopLeft);
             backgroundCanvas.drawText(allSegmentsOnTopRight, mXOffsetTopRight, mYOffsetTopRight, mTextPaintTopRight);
             backgroundCanvas.drawText(allSegmentsOnBottomLeft, mXOffsetBottomLeft, mYOffsetBottomLeft, mTextPaintBottomLeft);
-            backgroundCanvas.drawText(allSegmentsOnBottomRight, mXOffsetBottomRight, mYOffsetBottomRight, mTextPaintBottomRight);
+            if (mAmbient) {
+                backgroundCanvas.drawText(allSegmentsOnBottomRight, mXOffsetBottomRight2, mYOffsetBottomRight2, mTextPaintBottomRight2);
+            } else {
+                backgroundCanvas.drawText(allSegmentsOnBottomRight, mXOffsetBottomRight, mYOffsetBottomRight, mTextPaintBottomRight);
+            }
             mTextPaintMiddle.setAlpha(255);
             mTextPaintTopLeft.setAlpha(255);
             mTextPaintTopRight.setAlpha(255);
             mTextPaintBottomLeft.setAlpha(255);
             mTextPaintBottomRight.setAlpha(255);
+            mTextPaintBottomRight2.setAlpha(255);
         }
 
         /**
@@ -1118,6 +1153,9 @@ public class LEDWatchFace extends CanvasWatchFaceService {
      * @return the resulting string
      */
     private static String addLetterSpacing(String s, int spacing, int textAlign) {
+        return addLetterSpacing(s, spacing, textAlign, ' ');
+    }
+    private static String addLetterSpacing(String s, int spacing, int textAlign, char space) {
         boolean insertSpaceAtEnd = false;
         boolean insertSpaceAtBeginning = false;
         if (textAlign == TEXT_ALIGN_LEFT) {
@@ -1126,26 +1164,27 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             insertSpaceAtEnd = true;
         }
 
-        int halfSpacing = (int)Math.round(spacing / 2f);
+        int length = s.length();
+        int halfSpacing = (int) Math.round(spacing / 2f);
         StringBuffer resultBuffer = new StringBuffer(s);
 
         if (insertSpaceAtEnd) {
             for (int j = 1; j <= halfSpacing; j += 1) {
-                resultBuffer.append(' ');
+                resultBuffer.append(space);
             }
         }
-        for (int i = s.length() - 1; i >= 1; i -= 1) {
+        for (int i = length - 1; i >= 1; i -= 1) {
             // "A.B" => "A .B"
             if (i > 0 && s.charAt(i - 1) == '.') {
                 continue;
             }
             for (int j = 1; j <= spacing; j += 1) {
-                resultBuffer.insert(i, ' ');
+                resultBuffer.insert(i, space);
             }
         }
         if (insertSpaceAtBeginning) {
             for (int j = 1; j <= halfSpacing; j += 1) {
-                resultBuffer.insert(0, ' ');
+                resultBuffer.insert(0, space);
             }
         }
         return resultBuffer.toString();
