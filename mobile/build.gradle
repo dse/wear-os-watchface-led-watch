@@ -4,11 +4,17 @@ android {
     compileSdkVersion 28
     defaultConfig {
         applicationId "com.webonastick.ledwatch"
-        minSdkVersion 15
+        minSdkVersion 14
         targetSdkVersion 28
-        versionCode 1
-        versionName "1.0"
+
+        // increase for each release; sync with wear build.gradle
+        // last digit 1 for mobile, 0 for wear
+        versionCode 11
+        versionName "0.0.0"
+
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+
+        wearAppUnbundled true
     }
     buildTypes {
         release {
