@@ -8,12 +8,15 @@ import android.content.ContextWrapper;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Handler;
+import android.util.Log;
 
 import static android.app.AlarmManager.RTC_WAKEUP;
 
 public class AmbientRefresher {
     private int seconds = 10;
     private static final String AMBIENT_UPDATE_ACTION = "com.webonastick.watchface.action.AMBIENT_UPDATE";
+
+    private static final String TAG = "AmbientRefresher";
 
     private Intent intent = null;
     private PendingIntent pendingIntent = null;
