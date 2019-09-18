@@ -35,6 +35,7 @@ import java.util.concurrent.TimeUnit;
 
 import com.webonastick.watchface.MultiTapEventHandler;
 import com.webonastick.watchface.MultiTapHandler;
+import com.webonastick.watchface.AmbientRefresher;
 
 /**
  * A digital watch face with seconds, battery, and date.
@@ -511,6 +512,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
         }
 
         private SharedPreferences mSharedPreferences;
+        private AmbientRefresher mAmbientRefresher;
 
         @Override
         public void onCreate(SurfaceHolder holder) {
@@ -556,6 +558,13 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             mCalendar = Calendar.getInstance();
             updateProperties();
             mBackgroundBitmap = null;
+
+            mAmbientRefresher = new AmbientRefresher(LEDWatchFace.this, new Runnable() {
+                @Override
+                public void run() {
+                    invalidate();
+                }
+            });
         }
 
         private void getThemePreference() {
@@ -728,6 +737,12 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             mAmbient = inAmbientMode;
             updateProperties();
             mBackgroundBitmap = null;
+
+            if (mAmbient) {
+                mAmbientRefresher.start();
+            } else {
+                mAmbientRefresher.stop();
+            }
 
             // Whether the timer should be running depends on whether we're visible (as well as
             // whether we're in ambient mode), so we may need to start or stop the timer.
