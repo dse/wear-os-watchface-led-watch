@@ -34,6 +34,8 @@ import java.util.concurrent.TimeUnit;
 import com.webonastick.watchface.MultiTapEventHandler;
 import com.webonastick.watchface.MultiTapHandler;
 import com.webonastick.watchface.AmbientRefresher;
+import com.webonastick.util.HSPColor;
+import com.webonastick.watchface.ScreenTimeExtender;
 
 /**
  * A digital watch face with seconds, battery, and date.
@@ -261,6 +263,10 @@ public class LEDWatchFace extends CanvasWatchFaceService {
         }
     }
 
+    private static final int COLOR_DARK_RED = 0xff440000;
+    private static final float LED_FAINT = HSPColor.fromRGB(COLOR_DARK_RED).perceivedBrightness();
+    private static final float LCD_FAINT = LED_FAINT / 3f;
+
     private class Engine extends CanvasWatchFaceService.Engine implements MultiTapEventHandler {
 
         private final Handler mUpdateTimeHandler = new EngineHandler(this);
@@ -386,14 +392,43 @@ public class LEDWatchFace extends CanvasWatchFaceService {
         private int getFaintAlpha() {
             switch (mThemeMode) {
                 case LED:
-                    return 34;
                 case VINTAGE_LED:
-                    return 34;
+                    return getFaintAlphaFromForeground(getForegroundColor());
                 case LCD:
-                    return 12;
+                    return getFaintAlphaFromBackground(getBackgroundColor());
                 default:
                     return 0;
             }
+        }
+
+        /**
+         * Calculate the alpha transparency at which to display the
+         * "faint" segments so that they are visible enough.
+         *
+         * This value will be higher for darker colors, and lower for
+         * brighter colors.
+         */
+        private int getFaintAlphaFromForeground(int color) {
+            float brightness = HSPColor.fromRGB(color).perceivedBrightness();
+            float relFaintBrightness = LED_FAINT / brightness;
+            int result = (int)(relFaintBrightness * 255f + 0.5f);
+            return result;
+        }
+
+        /**
+         * Calculate the alpha transparency at which to display the
+         * "faint" segments so that they are visible enough.
+         *
+         * This value will be higher for darker colors, and lower for
+         * brighter colors.
+         */
+        private int getFaintAlphaFromBackground(int color) {
+            float brightness = HSPColor.fromRGB(color).perceivedBrightness();
+            float newBrightness = brightness - LCD_FAINT;
+            float alpha = (brightness - newBrightness) / brightness;
+            alpha = (float)Math.min(alpha, 0.05f);
+            int result = (int)(alpha * 255f + 0.5f);
+            return result;
         }
 
         private int getFaintForegroundColor() {
@@ -507,6 +542,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
 
         private SharedPreferences mSharedPreferences;
         private AmbientRefresher mAmbientRefresher;
+        private ScreenTimeExtender screenTimeExtender;
 
         @Override
         public void onCreate(SurfaceHolder holder) {
@@ -558,6 +594,9 @@ public class LEDWatchFace extends CanvasWatchFaceService {
                     invalidate();
                 }
             });
+
+            screenTimeExtender = new ScreenTimeExtender(LEDWatchFace.this);
+            screenTimeExtender.clearIdle();
         }
 
         private void getThemePreference() {
@@ -632,6 +671,9 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             mIsRound = getApplicationContext().getResources().getConfiguration().isScreenRound();
             updateProperties();
             mBackgroundBitmap = null;
+            if (!mAmbient) {
+                screenTimeExtender.clearIdle();
+            }
         }
 
         private void updateSizeBasedProperties() {
@@ -695,7 +737,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             String text2 = addLetterSpacing("888", mLetterSpacing, TEXT_ALIGN_CENTER, ':');
             mTextPaintBottomRight.getTextBounds(text1, 0, text1.length(), bounds1);
             mTextPaintBottomRight.getTextBounds(text2, 0, text2.length(), bounds2);
-            mXOffsetBottomRight2 = mXOffsetMiddle + bounds1.width() - bounds2.width() / 2f;
+            mXOffsetBottomRight2 = mXOffsetMiddle + bounds1.width();
         }
 
         @Override
@@ -732,6 +774,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             // Whether the timer should be running depends on whether we're visible (as well as
             // whether we're in ambient mode), so we may need to start or stop the timer.
             updateTimer();
+            screenTimeExtender.clearIdle();
         }
 
         private void updateTextPaintProperties() {
@@ -740,7 +783,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             mTextPaintTopRight.setTextAlign(Paint.Align.LEFT);
             mTextPaintBottomLeft.setTextAlign(Paint.Align.RIGHT);
             mTextPaintBottomRight.setTextAlign(Paint.Align.LEFT);
-            mTextPaintBottomRight2.setTextAlign(Paint.Align.CENTER);
+            mTextPaintBottomRight2.setTextAlign(Paint.Align.RIGHT);
             mTextPaintMiddle.setTypeface(mSevenSegmentTypeface);
             mTextPaintTopLeft.setTypeface(mFourteenSegmentTypeface);
             mTextPaintTopRight.setTypeface(mSevenSegmentTypeface);
@@ -788,6 +831,9 @@ public class LEDWatchFace extends CanvasWatchFaceService {
                     // float yy = y;
                     multiTapEvent(MULTI_TAP_TYPE_TIME);
                     break;
+            }
+            if (!mAmbient) {
+                screenTimeExtender.clearIdle();
             }
         }
 
@@ -1035,6 +1081,10 @@ public class LEDWatchFace extends CanvasWatchFaceService {
                 } else {
                     canvas.drawText(textBottomRight, mXOffsetBottomRight, mYOffsetBottomRight, mTextPaintBottomRight);
                 }
+            }
+
+            if (!mAmbient) {
+                screenTimeExtender.checkIdle();
             }
         }
 
