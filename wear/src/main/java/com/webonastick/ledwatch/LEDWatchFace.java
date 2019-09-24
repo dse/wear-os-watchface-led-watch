@@ -442,18 +442,20 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             return result;
         }
 
+        /* as multiple of text size */
         private float getSmallerTextSizeRatio() {
             switch (mThemeMode) {
                 case LED:
                 case LCD:
                     return 0.5f;
                 case VINTAGE_LED:
-                    return 0.625f;
+                    return 0.6f;
                 default:
                     return 0.5f;
             }
         }
 
+        /* as integer number of spaces */
         private int getLetterSpacing() {
             switch (mThemeMode) {
                 case LED:
@@ -463,6 +465,19 @@ public class LEDWatchFace extends CanvasWatchFaceService {
                     return 2;
                 default:
                     return 0;
+            }
+        }
+
+        /* as multiple of text size */
+        private float getLineSpacingRatio() {
+            switch (mThemeMode) {
+                case LED:
+                case LCD:
+                    return 0.25f;
+                case VINTAGE_LED:
+                    return 0.5625f;
+                default:
+                    return 0.25f;
             }
         }
 
@@ -705,7 +720,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
                 mXOffsetAmPm = mSurfaceWidth / 2f - (mSurfaceWidth / 2f - 8 * mPixelDensity) * cosine;
             }
 
-            float textSizeAmPm = (textSize / 4f) / 0.7f;
+            float textSizeAmPm = (textSize / 4f) / 0.7f; /* "A" or "P" */
 
             mTextPaintMiddle.setTextSize(textSize);
             mTextPaintTopLeft.setTextSize(textSize * mSmallerTextSizeRatio);
@@ -718,7 +733,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             float textAscent     = -textSize;
             float textAscentAmPm = -textSizeAmPm * 0.7f;
 
-            float mLineSpacingDp = textSize * mSmallerTextSizeRatio * 0.5f;
+            float mLineSpacingDp = textSize * getLineSpacingRatio();
 
             mYOffsetMiddle = mSurfaceHeight / 2f - textAscent / 2f;
             mYOffsetTopLeft = mYOffsetMiddle + textAscent - mLineSpacingDp;
