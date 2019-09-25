@@ -543,7 +543,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
 
         private SharedPreferences mSharedPreferences;
         private AmbientRefresher mAmbientRefresher;
-        private ScreenTimeExtender screenTimeExtender;
+        private ScreenTimeExtender mScreenTimeExtender;
 
         @Override
         public void onCreate(SurfaceHolder holder) {
@@ -596,8 +596,8 @@ public class LEDWatchFace extends CanvasWatchFaceService {
                 }
             });
 
-            screenTimeExtender = new ScreenTimeExtender(LEDWatchFace.this);
-            screenTimeExtender.clearIdle();
+            mScreenTimeExtender = new ScreenTimeExtender(LEDWatchFace.this);
+            mScreenTimeExtender.clearIdle();
         }
 
         private void getThemePreference() {
@@ -673,7 +673,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             updateProperties();
             mBackgroundBitmap = null;
             if (!mAmbient) {
-                screenTimeExtender.clearIdle();
+                mScreenTimeExtender.clearIdle();
             }
         }
 
@@ -791,7 +791,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             // Whether the timer should be running depends on whether we're visible (as well as
             // whether we're in ambient mode), so we may need to start or stop the timer.
             updateTimer();
-            screenTimeExtender.clearIdle();
+            mScreenTimeExtender.clearIdle();
         }
 
         private void updateTextPaintProperties() {
@@ -850,7 +850,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
                     break;
             }
             if (!mAmbient) {
-                screenTimeExtender.clearIdle();
+                mScreenTimeExtender.clearIdle();
             }
         }
 
@@ -1107,7 +1107,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             }
 
             if (!mAmbient) {
-                screenTimeExtender.checkIdle();
+                mScreenTimeExtender.checkIdle();
             }
         }
 
