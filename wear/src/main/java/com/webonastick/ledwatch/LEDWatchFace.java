@@ -207,19 +207,6 @@ public class LEDWatchFace extends CanvasWatchFaceService {
 
     private static final String TAG = "LEDWatchFace";
 
-    private static final int DSEG_FONT_STYLE_NORMAL = 1;
-    private static final int DSEG_FONT_STYLE_ITALIC = 2;
-
-    private static final int DSEG_FONT_WEIGHT_LIGHT = 1;
-    private static final int DSEG_FONT_WEIGHT_NORMAL = 2;
-    private static final int DSEG_FONT_WEIGHT_BOLD = 3;
-
-    private static final int DSEG_FONT_FAMILY_CLASSIC = 1;
-    private static final int DSEG_FONT_FAMILY_MODERN = 2;
-
-    private static final int DSEG_FONT_SIZE_MINI = 1;
-    private static final int DSEG_FONT_SIZE_REGULAR = 2;
-
     private static final int TEXT_ALIGN_LEFT = 1;
     private static final int TEXT_ALIGN_CENTER = 2;
     private static final int TEXT_ALIGN_RIGHT = 3;
