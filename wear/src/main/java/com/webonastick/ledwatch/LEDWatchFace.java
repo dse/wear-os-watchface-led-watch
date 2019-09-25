@@ -26,6 +26,7 @@ import android.view.Gravity;
 import android.view.SurfaceHolder;
 
 import java.lang.ref.WeakReference;
+import java.text.Normalizer;
 import java.util.Calendar;
 import java.util.Locale;
 import java.util.TimeZone;
@@ -504,7 +505,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
                     mDSEGFontWeight = DSEGFontWeight.REGULAR;
                     break;
                 case VINTAGE_LED:
-                    mDSEGFontFamily = DSEGFontFamily.CLASSIC;
+                    mDSEGFontFamily = DSEGFontFamily.MODERN;
                     mDSEGFontSize = DSEGFontSize.NORMAL;
                     mDSEGFontStyle = DSEGFontStyle.ITALIC;
                     mDSEGFontWeight = DSEGFontWeight.LIGHT;
@@ -1044,9 +1045,15 @@ public class LEDWatchFace extends CanvasWatchFaceService {
 
             if (mShowDayOfWeek) {
                 textTopLeft = mCalendar.getDisplayName(Calendar.DAY_OF_WEEK, Calendar.SHORT, Locale.getDefault());
+
+                /* remove accents thx https://stackoverflow.com/a/3322174 */
+                textTopLeft = Normalizer.normalize(textTopLeft, Normalizer.Form.NFD);
+                textTopLeft = textTopLeft.replaceAll("\\p{M}", "");
+
                 if (textTopLeft.length() > 3) {
                     textTopLeft = textTopLeft.substring(0, 3);
                 }
+
                 textTopLeft = textTopLeft.toUpperCase();
             }
 
