@@ -346,7 +346,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
 
         // if true: show "100" then "99%"
         // if false: extra "1" segment to show "100%"
-        private final boolean m100SansPercent = true;
+        private final boolean m100SansPercent = false;
 
         private Typeface mSixthsOfAPieTypeface;
 
@@ -443,6 +443,8 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             return result;
         }
 
+        private static final float VINTAGE_LED_TEXT_SIZE_RATIO = 5f / 6f;
+
         /* as multiple of text size */
         private float getSmallerTextSizeRatio() {
             switch (mThemeMode) {
@@ -450,7 +452,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
                 case LCD:
                     return 0.5f;
                 case VINTAGE_LED:
-                    return 0.6f;
+                    return 0.5f;
                 default:
                     return 0.5f;
             }
@@ -476,7 +478,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
                 case LCD:
                     return 0.25f;
                 case VINTAGE_LED:
-                    return 0.5625f;
+                    return 1f;
                 default:
                     return 0.25f;
             }
@@ -709,16 +711,23 @@ public class LEDWatchFace extends CanvasWatchFaceService {
                 sampleText = addLetterSpacing(sampleText, mLetterSpacing, TEXT_ALIGN_CENTER);
             }
             mTextPaintMiddle.getTextBounds(sampleText, 0, sampleText.length(), bounds);
-            float textSize = (mSurfaceWidth - 16 * mPixelDensity) / bounds.width() * bounds.height();
+            int rawWidth = bounds.width();
+            int rawHeight = bounds.height();
+            float textSize = (mSurfaceWidth - 16 * mPixelDensity) / rawWidth * rawHeight;
+            if (mThemeMode == LEDWatchThemeMode.VINTAGE_LED) {
+                textSize *= VINTAGE_LED_TEXT_SIZE_RATIO;
+            }
 
-            int width = bounds.width();
-            int height = bounds.height();
-            mXOffsetAmPm = 8 * mPixelDensity;
+            float cookedWidth  = rawWidth  * 1f / mSurfaceWidth * textSize;
+            float cookedHeight = rawHeight * 1f / mSurfaceWidth * textSize;
+
+            mXOffsetAmPm = mSurfaceWidth / 2f - cookedWidth / 2f;
+
             if (mIsRound || mDemoTimeMode) {
-                float angle = (float) Math.atan2(height, width);
+                float angle = (float) Math.atan2(cookedHeight, cookedWidth);
                 float cosine = (float) Math.cos(angle);
                 textSize = textSize * cosine;
-                mXOffsetAmPm = mSurfaceWidth / 2f - (mSurfaceWidth / 2f - 8 * mPixelDensity) * cosine;
+                mXOffsetAmPm = mSurfaceWidth / 2f - cookedWidth / 2f * cosine;
             }
 
             float textSizeAmPm = (textSize / 4f) / 0.7f; /* "A" or "P" */
@@ -754,6 +763,15 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             mTextPaintBottomRight.getTextBounds(text1, 0, text1.length(), bounds1);
             mTextPaintBottomRight.getTextBounds(text2, 0, text2.length(), bounds2);
             mXOffsetBottomRight2 = mXOffsetMiddle + bounds1.width();
+
+            if (!m100SansPercent) {
+                String text = addLetterSpacing(":", mLetterSpacing, TEXT_ALIGN_LEFT, ':');
+                mTextPaintBottomLeft.getTextBounds(text, 0, text.length(), bounds);
+                Log.d(TAG, "width = " + bounds.width());
+                mXOffsetBottomLeft += bounds.width() / 2f;
+                mXOffsetBottomRight += bounds.width() / 2f;
+                mXOffsetBottomRight2 += bounds.width() / 2f;
+            }
         }
 
         @Override
