@@ -207,10 +207,6 @@ public class LEDWatchFace extends CanvasWatchFaceService {
 
     private static final String TAG = "LEDWatchFace";
 
-    private static final int TEXT_ALIGN_LEFT = 1;
-    private static final int TEXT_ALIGN_CENTER = 2;
-    private static final int TEXT_ALIGN_RIGHT = 3;
-
     private static final Typeface AM_PM_TYPEFACE =
             Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL);
 
@@ -695,7 +691,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             mTextPaintMiddle.setTextSize(mSurfaceWidth); // for calculatory purposes
             String sampleText = "88:88";
             if (mLetterSpacing > 0) {
-                sampleText = addLetterSpacing(sampleText, mLetterSpacing, TEXT_ALIGN_CENTER);
+                sampleText = addLetterSpacing(sampleText, mLetterSpacing, Paint.Align.CENTER);
             }
             mTextPaintMiddle.getTextBounds(sampleText, 0, sampleText.length(), bounds);
             int rawWidth = bounds.width();
@@ -745,14 +741,14 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             /* x offset for centered pie seconds */
             Rect bounds1 = new Rect();
             Rect bounds2 = new Rect();
-            String text1 = addLetterSpacing("888", mLetterSpacing, TEXT_ALIGN_LEFT, ':');
-            String text2 = addLetterSpacing("888", mLetterSpacing, TEXT_ALIGN_CENTER, ':');
+            String text1 = addLetterSpacing("888", mLetterSpacing, Paint.Align.LEFT, ':');
+            String text2 = addLetterSpacing("888", mLetterSpacing, Paint.Align.CENTER, ':');
             mTextPaintBottomRight.getTextBounds(text1, 0, text1.length(), bounds1);
             mTextPaintBottomRight.getTextBounds(text2, 0, text2.length(), bounds2);
             mXOffsetBottomRight2 = mXOffsetMiddle + bounds1.width();
 
             if (!m100SansPercent) {
-                String text = addLetterSpacing(":", mLetterSpacing, TEXT_ALIGN_LEFT, ':');
+                String text = addLetterSpacing(":", mLetterSpacing, Paint.Align.LEFT, ':');
                 mTextPaintBottomLeft.getTextBounds(text, 0, text.length(), bounds);
                 Log.d(TAG, "width = " + bounds.width());
                 mXOffsetBottomLeft += bounds.width() / 2f;
@@ -1069,19 +1065,19 @@ public class LEDWatchFace extends CanvasWatchFaceService {
 
             if (mLetterSpacing > 0) {
                 if (textMiddle != null) {
-                    textMiddle = addLetterSpacing(textMiddle, mLetterSpacing, TEXT_ALIGN_CENTER);
+                    textMiddle = addLetterSpacing(textMiddle, mLetterSpacing, Paint.Align.CENTER);
                 }
                 if (mShowDayOfWeek && textTopLeft != null) {
-                    textTopLeft = addLetterSpacing(textTopLeft, mLetterSpacing, TEXT_ALIGN_RIGHT);
+                    textTopLeft = addLetterSpacing(textTopLeft, mLetterSpacing, Paint.Align.RIGHT);
                 }
                 if (mShowDayOfMonth && textTopRight != null) {
-                    textTopRight = addLetterSpacing(textTopRight, mLetterSpacing, TEXT_ALIGN_LEFT);
+                    textTopRight = addLetterSpacing(textTopRight, mLetterSpacing, Paint.Align.LEFT);
                 }
                 if (mShowBatteryLevel && textBottomLeft != null) {
-                    textBottomLeft = addLetterSpacing(textBottomLeft, mLetterSpacing, TEXT_ALIGN_RIGHT);
+                    textBottomLeft = addLetterSpacing(textBottomLeft, mLetterSpacing, Paint.Align.RIGHT);
                 }
                 if (mShowSeconds && textBottomRight != null && !mAmbient) {
-                    textBottomRight = addLetterSpacing(textBottomRight, mLetterSpacing, TEXT_ALIGN_LEFT);
+                    textBottomRight = addLetterSpacing(textBottomRight, mLetterSpacing, Paint.Align.LEFT);
                 }
             }
 
@@ -1141,11 +1137,11 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             }
 
             if (mLetterSpacing > 0) {
-                allSegmentsOnMiddle = addLetterSpacing(allSegmentsOnMiddle, mLetterSpacing, TEXT_ALIGN_CENTER);
-                allSegmentsOnTopLeft = addLetterSpacing(allSegmentsOnTopLeft, mLetterSpacing, TEXT_ALIGN_RIGHT);
-                allSegmentsOnTopRight = addLetterSpacing(allSegmentsOnTopRight, mLetterSpacing, TEXT_ALIGN_LEFT);
-                allSegmentsOnBottomLeft = addLetterSpacing(allSegmentsOnBottomLeft, mLetterSpacing, TEXT_ALIGN_RIGHT);
-                allSegmentsOnBottomRight = addLetterSpacing(allSegmentsOnBottomRight, mLetterSpacing, TEXT_ALIGN_LEFT);
+                allSegmentsOnMiddle = addLetterSpacing(allSegmentsOnMiddle, mLetterSpacing, Paint.Align.CENTER);
+                allSegmentsOnTopLeft = addLetterSpacing(allSegmentsOnTopLeft, mLetterSpacing, Paint.Align.RIGHT);
+                allSegmentsOnTopRight = addLetterSpacing(allSegmentsOnTopRight, mLetterSpacing, Paint.Align.LEFT);
+                allSegmentsOnBottomLeft = addLetterSpacing(allSegmentsOnBottomLeft, mLetterSpacing, Paint.Align.RIGHT);
+                allSegmentsOnBottomRight = addLetterSpacing(allSegmentsOnBottomRight, mLetterSpacing, Paint.Align.LEFT);
             }
 
             if (mAmbient) {
@@ -1239,25 +1235,25 @@ public class LEDWatchFace extends CanvasWatchFaceService {
      * Insert at each point between two characters a number of spaces,
      * returning the resulting string.
      * <p>
-     * If textAlign is TEXT_ALIGN_LEFT, also pad spaces before the first character.
+     * If textAlign is Paint.Align.LEFT, also pad spaces before the first character.
      * <p>
-     * If textAlign is TEXT_ALIGN_RIGHT, also pad spaces after the last character.
+     * If textAlign is Paint.Align.RIGHT, also pad spaces after the last character.
      *
      * @param s         the original string
      * @param spacing   the number of spaces to insert at each location
-     * @param textAlign TEXT_ALIGN_LEFT, _CENTER, or _RIGHT
+     * @param textAlign Paint.Align.LEFT, _CENTER, or _RIGHT
      * @return the resulting string
      */
-    private static String addLetterSpacing(String s, int spacing, int textAlign) {
+    private static String addLetterSpacing(String s, int spacing, Paint.Align textAlign) {
         return addLetterSpacing(s, spacing, textAlign, ' ');
     }
 
-    private static String addLetterSpacing(String s, int spacing, int textAlign, char space) {
+    private static String addLetterSpacing(String s, int spacing, Paint.Align textAlign, char space) {
         boolean insertSpaceAtEnd = false;
         boolean insertSpaceAtBeginning = false;
-        if (textAlign == TEXT_ALIGN_LEFT) {
+        if (textAlign == Paint.Align.LEFT) {
             insertSpaceAtBeginning = true;
-        } else if (textAlign == TEXT_ALIGN_RIGHT) {
+        } else if (textAlign == Paint.Align.RIGHT) {
             insertSpaceAtEnd = true;
         }
 
