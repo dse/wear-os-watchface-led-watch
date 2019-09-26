@@ -291,6 +291,9 @@ public class LEDWatchFace extends CanvasWatchFaceService {
         private float mYOffsetAm;
         private float mYOffsetPm;
 
+        private float mYOffsetTopMiddle;
+        private float mYOffsetMiddleBottom;
+
         private Paint mBackgroundPaint = null;
         private Paint mTextPaintMiddle = null;
         private Paint mTextPaintLeft = null;
@@ -850,12 +853,15 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             
             float textAscent = -textSize;
             float textAscentAmPm = -textSizeAmPm * 0.7f;
-            float mLineSpacingDp = textSize * getLineSpacingRatio();
+            float lineSpacing = textSize * getLineSpacingRatio();
             mYOffsetMiddle = mSurfaceHeight / 2f - textAscent / 2f;
-            mYOffsetTop = mYOffsetMiddle + textAscent - mLineSpacingDp;
-            mYOffsetBottom = mYOffsetMiddle - textAscent * mSmallerTextSizeRatio + mLineSpacingDp;
+            mYOffsetTop = mYOffsetMiddle + textAscent - lineSpacing;
+            mYOffsetBottom = mYOffsetMiddle - textAscent * mSmallerTextSizeRatio + lineSpacing;
             mYOffsetAm = mSurfaceHeight / 2f + textAscent / 4f - textAscentAmPm / 2f;
             mYOffsetPm = mSurfaceHeight / 2f - textAscent / 4f - textAscentAmPm / 2f;
+
+            mYOffsetTopMiddle = mYOffsetMiddle + textAscent - lineSpacing / 2f;
+            mYOffsetMiddleBottom = mYOffsetMiddle + lineSpacing / 2f;
         }
 
         @Override
@@ -971,8 +977,14 @@ public class LEDWatchFace extends CanvasWatchFaceService {
                     break;
                 case TAP_TYPE_TAP:
                     // float xx = x;
-                    // float yy = y;
-                    multiTapEvent(MULTI_TAP_TYPE_TIME);
+                    float yy = y;
+                    if (yy < mYOffsetTopMiddle) {
+                        multiTapEvent(MULTI_TAP_REGION_TOP);
+                    } else if (yy > mYOffsetMiddleBottom) {
+                        multiTapEvent(MULTI_TAP_REGION_BOTTOM);
+                    } else {
+                        multiTapEvent(MULTI_TAP_REGION_TIME);
+                    }
                     break;
             }
             if (!mAmbient) {
@@ -980,17 +992,17 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             }
         }
 
-        private final int MULTI_TAP_TYPE_TIME = 1;
-        private final int MULTI_TAP_TYPE_TOP = 2;
-        private final int MULTI_TAP_TYPE_BOTTOM = 3;
+        private final int MULTI_TAP_REGION_TIME = 1;
+        private final int MULTI_TAP_REGION_TOP = 2;
+        private final int MULTI_TAP_REGION_BOTTOM = 3;
 
         public void onMultiTapCommand(int type, int numberOfTaps) {
             switch (type) {
-                case MULTI_TAP_TYPE_TOP:
+                case MULTI_TAP_REGION_TOP:
                     break;
-                case MULTI_TAP_TYPE_BOTTOM:
+                case MULTI_TAP_REGION_BOTTOM:
                     break;
-                case MULTI_TAP_TYPE_TIME:
+                case MULTI_TAP_REGION_TIME:
                     switch (numberOfTaps) {
                         case 2:
                             mThemeColor = mThemeColor.nextThemeColor();
