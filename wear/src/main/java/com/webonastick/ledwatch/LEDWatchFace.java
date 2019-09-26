@@ -434,7 +434,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             return result;
         }
 
-        private static final float VINTAGE_LED_TEXT_SIZE_RATIO = 0.875f;
+        private static final float VINTAGE_LED_TEXT_SIZE_RATIO = 0.9f;
 
         /* as multiple of text size */
         private float getSmallerTextSizeRatio() {
@@ -1333,6 +1333,10 @@ public class LEDWatchFace extends CanvasWatchFaceService {
 
     private static void getTextBounds(String s, Rect bounds, Paint textPaint) {
         textPaint.getTextBounds(s, 0, s.length(), bounds);
+        Rect bounds1 = new Rect();
+        Rect bounds2 = new Rect();
+        textPaint.getTextBounds("::", 0, 2, bounds1);
+        textPaint.getTextBounds(":" + s + ":", 0, s.length() + 2, bounds2);
         bounds.left = 0;
         bounds.right = bounds2.width() - bounds1.width();
     }
