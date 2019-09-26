@@ -434,7 +434,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             return result;
         }
 
-        private static final float VINTAGE_LED_TEXT_SIZE_RATIO = 0.9f;
+        private static final float VINTAGE_LED_TEXT_SIZE_RATIO = 0.875f;
 
         /* as multiple of text size */
         private float getSmallerTextSizeRatio() {
