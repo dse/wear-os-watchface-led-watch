@@ -2,42 +2,45 @@ package com.webonastick.watchface;
 
 import android.os.Handler;
 
-public class MultiTapHandler {
+import androidx.annotation.Nullable;
+
+public class MultiTapHandler<RegionType> {
 
     // Windows default double-tap threshold.
     public static final int MULTI_TAP_THRESHOLD_MS = 500;
 
     private boolean mClosed = false;
-    private int mTapType = -1;
     private int mNumberOfTaps = -1;
     private Handler mHandler;
     private Runnable mRunnable;
     private int mThresholdMs = MULTI_TAP_THRESHOLD_MS;
     private MultiTapEventHandler mEventHandler;
 
+    private @Nullable RegionType mRegion = null;
+
     public MultiTapHandler(MultiTapEventHandler eventHandler) {
         mEventHandler = eventHandler;
         mRunnable = new Runnable() {
             @Override
             public void run() {
-                int tapType = mTapType;
+                @Nullable RegionType region = mRegion;
                 int numberOfTaps = mNumberOfTaps;
-                mTapType = -1;
+                mRegion = null;
                 mNumberOfTaps = -1;
-                mEventHandler.onMultiTapCommand(tapType, numberOfTaps);
+                mEventHandler.onMultiTapCommand(region, numberOfTaps);
             }
         };
         mHandler = new Handler();
     }
 
-    public void onTapEvent(int tapType) {
+    public void onTapEvent(RegionType region) {
         if (mClosed) {
             return;
         }
-        if (tapType == mTapType) {
+        if (region == mRegion) {
             mNumberOfTaps += 1;
         } else {
-            mTapType = tapType;
+            mRegion = region;
             mNumberOfTaps = 1;
         }
         schedule();
@@ -54,10 +57,10 @@ public class MultiTapHandler {
     public void cancel() {
         if (mHandler != null) {
             mHandler.removeCallbacks(mRunnable);
-            mTapType = -1;
+            mRegion = null;
             mNumberOfTaps = -1;
         }
-    }
+            }
 
     public void close() {
         cancel();

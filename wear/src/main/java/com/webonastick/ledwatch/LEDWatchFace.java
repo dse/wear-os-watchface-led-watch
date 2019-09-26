@@ -251,7 +251,13 @@ public class LEDWatchFace extends CanvasWatchFaceService {
     private static final float LED_FAINT = HSPColor.fromRGB(COLOR_DARK_RED).perceivedBrightness();
     private static final float LCD_FAINT = LED_FAINT / 3f;
 
-    private class Engine extends CanvasWatchFaceService.Engine implements MultiTapEventHandler {
+    private enum Region {
+        TOP,
+        MIDDLE,
+        BOTTOM
+    }
+
+    private class Engine extends CanvasWatchFaceService.Engine implements MultiTapEventHandler<Region> {
 
         private final Handler mUpdateTimeHandler = new EngineHandler(this);
         private Calendar mCalendar;
@@ -979,11 +985,11 @@ public class LEDWatchFace extends CanvasWatchFaceService {
                     // float xx = x;
                     float yy = y;
                     if (yy < mYOffsetTopMiddle) {
-                        multiTapEvent(MULTI_TAP_REGION_TOP);
+                        multiTapEvent(Region.TOP);
                     } else if (yy > mYOffsetMiddleBottom) {
-                        multiTapEvent(MULTI_TAP_REGION_BOTTOM);
+                        multiTapEvent(Region.BOTTOM);
                     } else {
-                        multiTapEvent(MULTI_TAP_REGION_TIME);
+                        multiTapEvent(Region.MIDDLE);
                     }
                     break;
             }
@@ -992,17 +998,13 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             }
         }
 
-        private final int MULTI_TAP_REGION_TIME = 1;
-        private final int MULTI_TAP_REGION_TOP = 2;
-        private final int MULTI_TAP_REGION_BOTTOM = 3;
-
-        public void onMultiTapCommand(int type, int numberOfTaps) {
-            switch (type) {
-                case MULTI_TAP_REGION_TOP:
+        public void onMultiTapCommand(Region region, int numberOfTaps) {
+            switch (region) {
+                case TOP:
                     break;
-                case MULTI_TAP_REGION_BOTTOM:
+                case BOTTOM:
                     break;
-                case MULTI_TAP_REGION_TIME:
+                case MIDDLE:
                     switch (numberOfTaps) {
                         case 2:
                             mThemeColor = mThemeColor.nextThemeColor();
@@ -1030,13 +1032,13 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             }
         }
 
-        private MultiTapHandler mMultiTapHandler = null;
+        private MultiTapHandler<Region> mMultiTapHandler = null;
 
-        private void multiTapEvent(int type) {
+        private void multiTapEvent(Region region) {
             if (mMultiTapHandler == null) {
-                mMultiTapHandler = new MultiTapHandler(this);
+                mMultiTapHandler = new MultiTapHandler<Region>(this);
             }
-            mMultiTapHandler.onTapEvent(type);
+            mMultiTapHandler.onTapEvent(region);
         }
 
         private void cancelMultiTap() {

@@ -1,5 +1,5 @@
 package com.webonastick.watchface;
 
-public interface MultiTapEventHandler {
-    public void onMultiTapCommand(int type, int numberOfTaps);
+public interface MultiTapEventHandler<RegionType> {
+    public void onMultiTapCommand(RegionType region, int numberOfTaps);
 }
