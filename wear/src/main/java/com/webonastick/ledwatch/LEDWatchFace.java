@@ -21,6 +21,7 @@ import android.provider.Settings;
 import android.support.wearable.watchface.CanvasWatchFaceService;
 import android.support.wearable.watchface.WatchFaceStyle;
 import android.text.format.DateFormat;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.SurfaceHolder;
 
@@ -528,7 +529,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
         }
 
         private String leftSegments() {
-            return "88";
+            return is24Hour() ? "88" : "18";
         }
 
         private String middleSegments() {
@@ -749,65 +750,121 @@ public class LEDWatchFace extends CanvasWatchFaceService {
         }
 
         private void updateSizeBasedProperties() {
-            Resources resources = LEDWatchFace.this.getResources();
-
-            mXOffsetMiddle = mSurfaceWidth / 2f;
-
-            Rect bounds = new Rect();
-
-            // compute text size for time of day display
-            mTextPaintMiddle.setTextSize(mSurfaceWidth); // for calculatory purposes
+            Log.d(TAG, "updateSizeBasedProperties()");
+            computeTimeOfDayTextSizeAndOffsets();
+            computeAmPmTextSizeAndHorizontalOffsets();
+            computeDayDateTextSizeAndHorizontalOffsets();
+            computeBatterySecondsTextSizeAndHorizontalOffsets();
+            computeVerticalOffsets();
+        }
+        
+        private void computeTimeOfDayTextSizeAndOffsets() {
+            Log.d(TAG, String.format(
+                    "mSurfaceWidth = %f",
+                    (float)mSurfaceWidth
+            ));
+            mTextPaintMiddle.setTextSize(mSurfaceWidth); // this size only for calculatory purposes
             String sampleText = hasFullWidthColon() ? "88888" : "88:88";
-            sampleText = addLetterSpacing(sampleText, mLetterSpacing, Paint.Align.CENTER);
-            getTextBounds(sampleText, bounds, mTextPaintMiddle);
-            int rawWidth = bounds.width();
-            int rawHeight = bounds.height();
-            float textSize = (mSurfaceWidth - 16 * mPixelDensity) / rawWidth * rawHeight;
+            sampleText = addLetterSpacing(sampleText, mLetterSpacing);
+            float rawHeight = getTextHeight(sampleText, mTextPaintMiddle);
+            float rawWidth = getTextWidth(sampleText, mTextPaintMiddle);
+            float textSize = (mSurfaceWidth - 16 * mPixelDensity * 0) / rawWidth * rawHeight;
+            Log.d(TAG, String.format(
+                    "sampleText [%s] rawHeight [%f] rawWidth [%f] textSize [%f]",
+                    sampleText, rawHeight, rawWidth, textSize
+            ));
+
+            mTextPaintMiddle.setTextSize(textSize);
+            Log.d(TAG, String.format(
+                    "  test width is %f",
+                    getTextWidth(sampleText, mTextPaintMiddle)
+            ));
+
             if (mThemeMode == LEDWatchThemeMode.VINTAGE_LED) {
                 textSize *= VINTAGE_LED_TEXT_SIZE_RATIO;
+                Log.d(TAG, String.format(
+                        "=> textSize [%f] (vintage LED)",
+                        textSize
+                ));
             }
 
-            // compute horizontal offsets for time of day display and A/P
+            float cookedWidth = rawWidth / mSurfaceWidth * textSize;
+            float cookedHeight = rawHeight / mSurfaceWidth * textSize;
+
+            Log.d(TAG, String.format(
+                    "cookedHeight [%f] cookedWidth [%f]",
+                    cookedHeight, cookedWidth
+            ));
+
             // slightly smaller for round displays
-            float textSizeAmPm = (textSize / 4f) / 0.7f; /* "A" or "P" */
-            float cookedWidth = rawWidth * 1f / mSurfaceWidth * textSize;
-            float cookedHeight = rawHeight * 1f / mSurfaceWidth * textSize;
             if (mIsRound || mDemoTimeMode) {
                 float angle = (float) Math.atan2(cookedHeight, cookedWidth);
                 float cosine = (float) Math.cos(angle);
-                textSize = textSize * cosine;
+                textSize *= cosine;
                 cookedWidth *= cosine;
                 cookedHeight *= cosine;
+                Log.d(TAG, String.format(
+                        "=> textSize [%f]",
+                        textSize
+                ));
             }
             mXOffsetAmPm = mSurfaceWidth / 2f - cookedWidth / 2f;
             mXOffsetLeft = mSurfaceWidth / 2f - cookedWidth / 2f;
             mXOffsetRight = mSurfaceWidth / 2f + cookedWidth / 2f;
+            mXOffsetMiddle = mSurfaceWidth / 2f;
 
-            float smallerTextSize = textSize * mSmallerTextSizeRatio;
+            Log.d(TAG, String.format(
+                    "mXOffsetAmPm [%f] mXOffsetLeft [%f] mXOffsetRight [%f] mXOffsetMiddle [%f]",
+                    mXOffsetAmPm, mXOffsetLeft, mXOffsetRight, mXOffsetMiddle
+            ));
 
             mTextPaintMiddle.setTextSize(textSize);
             mTextPaintLeft.setTextSize(textSize);
             mTextPaintRight.setTextSize(textSize);
-            mTextPaintTopLeft.setTextSize(smallerTextSize);
-            mTextPaintTopRight.setTextSize(smallerTextSize);
-            mTextPaintBottomLeft.setTextSize(smallerTextSize);
-            mTextPaintBottomRight.setTextSize(smallerTextSize);
-            mTextPaintBottomRight2.setTextSize(smallerTextSize);
+        }
+        
+        private void computeAmPmTextSizeAndHorizontalOffsets() {
+            float textSize = mTextPaintMiddle.getTextSize();
+
+            float textSizeAmPm = (textSize / 4f) / 0.7f; /* "A" or "P" */
             mTextPaintAmPm.setTextSize(textSizeAmPm);
 
-            // compute horizontal offsets for day and date
-            sampleText = topLeftSegments() + topRightSegments();
+            Log.d(TAG, String.format(
+                    "textSize [%f] => textSizeAmPm [%f]",
+                    textSize, textSizeAmPm
+            ));
+        }
+
+        private void computeDayDateTextSizeAndHorizontalOffsets() {
+            float textSize = mTextPaintMiddle.getTextSize();
+            float smallerTextSize = textSize * mSmallerTextSizeRatio;
+
+            mTextPaintTopLeft.setTextSize(smallerTextSize);
+            mTextPaintTopRight.setTextSize(smallerTextSize);
+
+            String sampleText = topLeftSegments() + topRightSegments();
             sampleText = addLetterSpacing(sampleText, mLetterSpacing2);
-            getTextBounds(sampleText, bounds, mTextPaintTopLeft);
-            cookedWidth = bounds.width();
+            float cookedWidth = getTextWidth(sampleText, mTextPaintTopLeft);
             mXOffsetTopLeft = mSurfaceWidth / 2f - cookedWidth / 2f;
             mXOffsetTopRight = mSurfaceWidth / 2f + cookedWidth / 2f;
 
-            // compute horizontal offsets for battery% and seconds
-            sampleText = bottomLeftSegments() + bottomRightSegments();
+            Log.d(TAG, String.format(
+                    "textSize [%f] => smallerTextSize [%f] sampleText [%s] cookedWidth [%f] mXOffsetTopLeft [%f] mXOffsetTopRight [%f]",
+                    textSize, smallerTextSize, sampleText, cookedWidth, mXOffsetTopLeft, mXOffsetTopRight
+            ));
+        }
+
+        private void computeBatterySecondsTextSizeAndHorizontalOffsets() {
+            float textSize = mTextPaintMiddle.getTextSize();
+            float smallerTextSize = textSize * mSmallerTextSizeRatio;
+
+            mTextPaintBottomLeft.setTextSize(smallerTextSize);
+            mTextPaintBottomRight.setTextSize(smallerTextSize);
+            mTextPaintBottomRight2.setTextSize(smallerTextSize);
+
+            String sampleText = bottomLeftSegments() + bottomRightSegments();
             sampleText = addLetterSpacing(sampleText, mLetterSpacing2);
-            getTextBounds(sampleText, bounds, mTextPaintBottomLeft);
-            cookedWidth = bounds.width();
+            float cookedWidth = getTextWidth(sampleText, mTextPaintBottomLeft);
             if (sampleText.startsWith("1")) {
                 cookedWidth -= getTextWidthDifference("1", "8", mTextPaintBottomLeft);
             }
@@ -817,7 +874,12 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             if (sampleText.startsWith("1")) {
                 mXOffsetBottomLeft -= getTextWidthDifference("1", "8", mTextPaintBottomLeft);
             }
+        }
 
+        private void computeVerticalOffsets() {
+            float textSize = mTextPaintMiddle.getTextSize();
+            float textSizeAmPm = mTextPaintAmPm.getTextSize();
+            
             float textAscent = -textSize;
             float textAscentAmPm = -textSizeAmPm * 0.7f;
             float mLineSpacingDp = textSize * getLineSpacingRatio();
@@ -884,39 +946,46 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             mTextPaintBottomLeft.setTypeface(mFourteenSegmentTypeface);
             mTextPaintBottomRight.setTypeface(mSevenSegmentTypeface);
             mTextPaintBottomRight2.setTypeface(mSixthsOfAPieTypeface);
-            mTextPaintAmPm.setTypeface(Typeface.SANS_SERIF);
-
-            if (mLowBitAmbient) {
-                mTextPaintMiddle.setAntiAlias(false);
-                mTextPaintLeft.setAntiAlias(false);
-                mTextPaintRight.setAntiAlias(false);
-                mTextPaintTopLeft.setAntiAlias(false);
-                mTextPaintTopRight.setAntiAlias(false);
-                mTextPaintBottomLeft.setAntiAlias(false);
-                mTextPaintBottomRight.setAntiAlias(false);
-                mTextPaintBottomRight2.setAntiAlias(false);
-                mTextPaintAmPm.setAntiAlias(false);
-            } else {
-                mTextPaintMiddle.setAntiAlias(true);
-                mTextPaintLeft.setAntiAlias(true);
-                mTextPaintRight.setAntiAlias(true);
-                mTextPaintTopLeft.setAntiAlias(true);
-                mTextPaintTopRight.setAntiAlias(true);
-                mTextPaintBottomLeft.setAntiAlias(true);
-                mTextPaintBottomRight.setAntiAlias(true);
-                mTextPaintBottomRight2.setAntiAlias(true);
-                mTextPaintAmPm.setAntiAlias(true);
-            }
-
-            mTextPaintMiddle.setColor(mForegroundColor);
-            mTextPaintLeft.setColor(mForegroundColor);
-            mTextPaintRight.setColor(mForegroundColor);
-            mTextPaintTopLeft.setColor(mForegroundColor);
-            mTextPaintTopRight.setColor(mForegroundColor);
-            mTextPaintBottomLeft.setColor(mForegroundColor);
-            mTextPaintBottomRight.setColor(mForegroundColor);
-            mTextPaintBottomRight2.setColor(mForegroundColor);
-            mTextPaintAmPm.setColor(mForegroundColor);
+            mTextPaintAmPm.setTypeface(Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL));
+            
+            setAntiAlias(!mLowBitAmbient);
+            setColor(mForegroundColor);
+        }
+        
+        private void setAntiAlias(boolean flag) {
+            mTextPaintMiddle.setAntiAlias(flag);
+            mTextPaintLeft.setAntiAlias(flag);
+            mTextPaintRight.setAntiAlias(flag);
+            mTextPaintTopLeft.setAntiAlias(flag);
+            mTextPaintTopRight.setAntiAlias(flag);
+            mTextPaintBottomLeft.setAntiAlias(flag);
+            mTextPaintBottomRight.setAntiAlias(flag);
+            mTextPaintBottomRight2.setAntiAlias(flag);
+            mTextPaintAmPm.setAntiAlias(flag);
+        }
+        
+        private void setColor(int color) {
+            mTextPaintMiddle.setColor(color);
+            mTextPaintLeft.setColor(color);
+            mTextPaintRight.setColor(color);
+            mTextPaintTopLeft.setColor(color);
+            mTextPaintTopRight.setColor(color);
+            mTextPaintBottomLeft.setColor(color);
+            mTextPaintBottomRight.setColor(color);
+            mTextPaintBottomRight2.setColor(color);
+            mTextPaintAmPm.setColor(color);
+        }
+        
+        private void setAlpha(int alpha) {
+            mTextPaintMiddle.setAlpha(alpha);
+            mTextPaintLeft.setAlpha(alpha);
+            mTextPaintRight.setAlpha(alpha);
+            mTextPaintTopLeft.setAlpha(alpha);
+            mTextPaintTopRight.setAlpha(alpha);
+            mTextPaintBottomLeft.setAlpha(alpha);
+            mTextPaintBottomRight.setAlpha(alpha);
+            mTextPaintBottomRight2.setAlpha(alpha);
+            mTextPaintAmPm.setAlpha(alpha);
         }
 
         /**
@@ -1207,21 +1276,19 @@ public class LEDWatchFace extends CanvasWatchFaceService {
                 return;
             }
 
-            // for faint all-segments-on characters
             String allSegmentsOnLeft = leftSegments();
             String allSegmentsOnRight = rightSegments();
-
             String allSegmentsOnTopLeft = topLeftSegments();
             String allSegmentsOnTopRight = topRightSegments();
             String allSegmentsOnBottomLeft = bottomLeftSegments();
             String allSegmentsOnBottomRight = bottomRightSegments();
 
-                allSegmentsOnLeft = addLetterSpacing(leftSegments(), mLetterSpacing);
-                allSegmentsOnRight = addLetterSpacing(rightSegments(), mLetterSpacing);
-                allSegmentsOnTopLeft = addLetterSpacing(allSegmentsOnTopLeft, mLetterSpacing2);
-                allSegmentsOnTopRight = addLetterSpacing(allSegmentsOnTopRight, mLetterSpacing2);
-                allSegmentsOnBottomLeft = addLetterSpacing(allSegmentsOnBottomLeft, mLetterSpacing2);
-                allSegmentsOnBottomRight = addLetterSpacing(allSegmentsOnBottomRight, mLetterSpacing2);
+            allSegmentsOnLeft = addLetterSpacing(allSegmentsOnLeft, mLetterSpacing);
+            allSegmentsOnRight = addLetterSpacing(allSegmentsOnRight, mLetterSpacing);
+            allSegmentsOnTopLeft = addLetterSpacing(allSegmentsOnTopLeft, mLetterSpacing2);
+            allSegmentsOnTopRight = addLetterSpacing(allSegmentsOnTopRight, mLetterSpacing2);
+            allSegmentsOnBottomLeft = addLetterSpacing(allSegmentsOnBottomLeft, mLetterSpacing2);
+            allSegmentsOnBottomRight = addLetterSpacing(allSegmentsOnBottomRight, mLetterSpacing2);
 
             if (mAmbient) {
                 allSegmentsOnBottomRight = "\uf006";
@@ -1231,35 +1298,10 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             mBackgroundBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
             backgroundCanvas.setBitmap(mBackgroundBitmap);
             backgroundCanvas.drawRect(0, 0, width, height, mBackgroundPaint);
-
-            mTextPaintMiddle.setAntiAlias(true);
-            mTextPaintMiddle.setColor(mForegroundColor);
-            mTextPaintLeft.setAntiAlias(true);
-            mTextPaintLeft.setColor(mForegroundColor);
-            mTextPaintRight.setAntiAlias(true);
-            mTextPaintRight.setColor(mForegroundColor);
-            mTextPaintTopLeft.setAntiAlias(true);
-            mTextPaintTopLeft.setColor(mForegroundColor);
-            mTextPaintTopRight.setAntiAlias(true);
-            mTextPaintTopRight.setColor(mForegroundColor);
-            mTextPaintBottomLeft.setAntiAlias(true);
-            mTextPaintBottomLeft.setColor(mForegroundColor);
-            mTextPaintBottomRight.setAntiAlias(true);
-            mTextPaintBottomRight.setColor(mForegroundColor);
-            mTextPaintBottomRight2.setAntiAlias(true);
-            mTextPaintBottomRight2.setColor(mForegroundColor);
-            mTextPaintAmPm.setAntiAlias(true);
-            mTextPaintAmPm.setColor(mForegroundColor);
-
-            mTextPaintMiddle.setAlpha(mFaintAlpha);
-            mTextPaintLeft.setAlpha(mFaintAlpha);
-            mTextPaintRight.setAlpha(mFaintAlpha);
-            mTextPaintTopLeft.setAlpha(mFaintAlpha);
-            mTextPaintTopRight.setAlpha(mFaintAlpha);
-            mTextPaintBottomLeft.setAlpha(mFaintAlpha);
-            mTextPaintBottomRight.setAlpha(mFaintAlpha);
-            mTextPaintBottomRight2.setAlpha(mFaintAlpha);
-            mTextPaintAmPm.setAlpha(mFaintAlpha);
+            
+            setAntiAlias(!mLowBitAmbient);
+            setColor(mForegroundColor);
+            setAlpha(mFaintAlpha);
 
             backgroundCanvas.drawText(allSegmentsOnLeft, mXOffsetLeft, mYOffsetMiddle, mTextPaintLeft);
             backgroundCanvas.drawText(allSegmentsOnRight, mXOffsetRight, mYOffsetMiddle, mTextPaintRight);
@@ -1285,15 +1327,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
                 backgroundCanvas.drawText("P", mXOffsetAmPm, mYOffsetPm, mTextPaintAmPm);
             }
 
-            mTextPaintMiddle.setAlpha(255);
-            mTextPaintLeft.setAlpha(255);
-            mTextPaintRight.setAlpha(255);
-            mTextPaintTopLeft.setAlpha(255);
-            mTextPaintTopRight.setAlpha(255);
-            mTextPaintBottomLeft.setAlpha(255);
-            mTextPaintBottomRight.setAlpha(255);
-            mTextPaintBottomRight2.setAlpha(255);
-            mTextPaintAmPm.setAlpha(255);
+            setAlpha(255);
         }
 
         /**
@@ -1329,16 +1363,6 @@ public class LEDWatchFace extends CanvasWatchFaceService {
                 mUpdateTimeHandler.sendEmptyMessageDelayed(MSG_UPDATE_TIME, delayMs);
             }
         }
-    }
-
-    private static void getTextBounds(String s, Rect bounds, Paint textPaint) {
-        textPaint.getTextBounds(s, 0, s.length(), bounds);
-        Rect bounds1 = new Rect();
-        Rect bounds2 = new Rect();
-        textPaint.getTextBounds("::", 0, 2, bounds1);
-        textPaint.getTextBounds(":" + s + ":", 0, s.length() + 2, bounds2);
-        bounds.left = 0;
-        bounds.right = bounds2.width() - bounds1.width();
     }
 
     private static float getTextWidthDifference(String s1, String s2, Paint textPaint) {
@@ -1414,17 +1438,9 @@ public class LEDWatchFace extends CanvasWatchFaceService {
         return resultBuffer.toString();
     }
 
-    private static String repeatString(String str, int times) {
-        StringBuilder stringBuilder = new StringBuilder(str.length() * times);
-        for (int i = 0; i < times; i += 1) {
-            stringBuilder.append(str);
-        }
-        return stringBuilder.toString();
-    }
-
-    private static float getCapHeight(Paint paint) {
+    private static float getTextHeight(String testString, Paint paint) {
         Rect bounds = new Rect();
-        paint.getTextBounds("X", 0, 1, bounds);
+        paint.getTextBounds(testString, 0, 1, bounds);
         return bounds.height();
     }
 
