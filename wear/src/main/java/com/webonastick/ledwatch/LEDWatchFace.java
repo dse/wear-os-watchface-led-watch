@@ -552,6 +552,15 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             return "88";
         }
 
+        private float textSkewX() {
+            switch (mThemeMode) {
+                case VINTAGE_LED:
+                    return 0f;
+                default:
+                    return 0.04f;
+            }
+        }
+
         private void updateProperties() {
             updateThemeBasedProperties();
             updateColors();
@@ -668,6 +677,8 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             mTextPaintBottomRight = new Paint();
             mTextPaintBottomRight2 = new Paint();
             mTextPaintAmPm = new Paint();
+
+            setTextSkewX(textSkewX());
 
             mCalendar = Calendar.getInstance();
             updateProperties();
@@ -930,6 +941,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             
             setAntiAlias(!mLowBitAmbient);
             setColor(mForegroundColor);
+            setTextSkewX(textSkewX());
         }
         
         private void setAntiAlias(boolean flag) {
@@ -966,6 +978,17 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             mTextPaintBottomRight.setAlpha(alpha);
             mTextPaintBottomRight2.setAlpha(alpha);
             mTextPaintAmPm.setAlpha(alpha);
+        }
+
+        private void setTextSkewX(float skew) {
+            mTextPaintMiddle.setTextSkewX(skew);
+            mTextPaintLeft.setTextSkewX(skew);
+            mTextPaintRight.setTextSkewX(skew);
+            mTextPaintTopLeft.setTextSkewX(skew);
+            mTextPaintTopRight.setTextSkewX(skew);
+            mTextPaintBottomLeft.setTextSkewX(skew);
+            mTextPaintBottomRight.setTextSkewX(skew);
+            mTextPaintBottomRight2.setTextSkewX(skew);
         }
 
         /**
