@@ -338,7 +338,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
 
         private Typeface mSixthsOfAPieTypeface;
 
-        private boolean mDemoTimeMode = false;
+        private boolean mDemoTimeMode = false; /* for screenshots */
         private boolean mEmulatorMode = false;
 
         private float mPixelDensity;
@@ -518,14 +518,17 @@ public class LEDWatchFace extends CanvasWatchFaceService {
 
         private String bottomLeftSegments() {
             /* 14-segment */
-            if (mThemeMode == LEDWatchThemeMode.VINTAGE_LED) {
-                return m100SansPercent ? "~~~" : "~~~~";
+            if (mThemeMode != LEDWatchThemeMode.VINTAGE_LED) {
+                return "1~~~";
             }
-            return m100SansPercent ? "~~~" : "1~~~";
+            return "~~~~";
         }
 
         private String bottomRightSegments() {
-            return "888";
+            if (mThemeMode != LEDWatchThemeMode.VINTAGE_LED) {
+                return "888";
+            }
+            return "88";
         }
 
         private String leftSegments() {
@@ -757,67 +760,32 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             computeBatterySecondsTextSizeAndHorizontalOffsets();
             computeVerticalOffsets();
         }
+
+        private static final int LEFT_RIGHT_PADDING_DP = 4;
         
         private void computeTimeOfDayTextSizeAndOffsets() {
-            Log.d(TAG, String.format(
-                    "mSurfaceWidth = %f",
-                    (float)mSurfaceWidth
-            ));
-            mTextPaintMiddle.setTextSize(mSurfaceWidth); // this size only for calculatory purposes
+            float textSizeForCalculations = 1000f;
+            float textWidth = mSurfaceWidth - LEFT_RIGHT_PADDING_DP * 2f * mPixelDensity;
+            mTextPaintMiddle.setTextSize(textSizeForCalculations);
             String sampleText = hasFullWidthColon() ? "88888" : "88:88";
             sampleText = addLetterSpacing(sampleText, mLetterSpacing);
-            float rawHeight = getTextHeight(sampleText, mTextPaintMiddle);
-            float rawWidth = getTextWidth(sampleText, mTextPaintMiddle);
-            float textSize = (mSurfaceWidth - 16 * mPixelDensity) / rawWidth * rawHeight;
-            Log.d(TAG, String.format(
-                    "sampleText [%s] rawHeight [%f] rawWidth [%f] textSize [%f]",
-                    sampleText, rawHeight, rawWidth, textSize
-            ));
-
-            mTextPaintMiddle.setTextSize(textSize);
-            Log.d(TAG, String.format(
-                    "  test width is %f",
-                    getTextWidth(sampleText, mTextPaintMiddle)
-            ));
-
-            if (mThemeMode == LEDWatchThemeMode.VINTAGE_LED) {
-                textSize *= VINTAGE_LED_TEXT_SIZE_RATIO;
-                Log.d(TAG, String.format(
-                        "=> textSize [%f] (vintage LED)",
-                        textSize
-                ));
-            }
-
-            float cookedWidth = rawWidth / mSurfaceWidth * textSize;
-            float cookedHeight = rawHeight / mSurfaceWidth * textSize;
-
-            Log.d(TAG, String.format(
-                    "cookedHeight [%f] cookedWidth [%f]",
-                    cookedHeight, cookedWidth
-            ));
-
-            // slightly smaller for round displays
+            float rawTextHeight = getTextHeight(sampleText, mTextPaintMiddle);
+            float rawTextWidth  = getTextWidth(sampleText, mTextPaintMiddle);
+            float textSize   = textSizeForCalculations / rawTextWidth * textWidth;
+            float multiplier = 1f;
             if (mIsRound || mDemoTimeMode) {
-                float angle = (float) Math.atan2(cookedHeight, cookedWidth);
-                float cosine = (float) Math.cos(angle);
-                textSize *= cosine;
-                cookedWidth *= cosine;
-                cookedHeight *= cosine;
-                Log.d(TAG, String.format(
-                        "=> textSize [%f]",
-                        textSize
-                ));
+                float angle = (float) Math.atan2(rawTextHeight, rawTextWidth);
+                multiplier = (float) Math.cos(angle);
             }
-            mXOffsetAmPm = mSurfaceWidth / 2f - cookedWidth / 2f;
-            mXOffsetLeft = mSurfaceWidth / 2f - cookedWidth / 2f;
-            mXOffsetRight = mSurfaceWidth / 2f + cookedWidth / 2f;
+            if (mThemeMode == LEDWatchThemeMode.VINTAGE_LED) {
+                multiplier *= VINTAGE_LED_TEXT_SIZE_RATIO;
+            }
+            textSize *= multiplier;
+            textWidth *= multiplier;
+            mXOffsetAmPm = mSurfaceWidth / 2f - textWidth / 2f;
+            mXOffsetLeft = mSurfaceWidth / 2f - textWidth / 2f;
+            mXOffsetRight = mSurfaceWidth / 2f + textWidth / 2f;
             mXOffsetMiddle = mSurfaceWidth / 2f;
-
-            Log.d(TAG, String.format(
-                    "mXOffsetAmPm [%f] mXOffsetLeft [%f] mXOffsetRight [%f] mXOffsetMiddle [%f]",
-                    mXOffsetAmPm, mXOffsetLeft, mXOffsetRight, mXOffsetMiddle
-            ));
-
             mTextPaintMiddle.setTextSize(textSize);
             mTextPaintLeft.setTextSize(textSize);
             mTextPaintRight.setTextSize(textSize);
@@ -1178,18 +1146,16 @@ public class LEDWatchFace extends CanvasWatchFaceService {
                     } else {
                         textBottomLeft = "????";
                     }
-                } else if (batteryPercentage < 100) {
-                    if (m100SansPercent) {
-                        textBottomLeft = String.format(Locale.getDefault(), "%2d%%", batteryPercentage);
+                } else if (batteryPercentage <= 100) {
+                    if (mThemeMode == LEDWatchThemeMode.VINTAGE_LED) {
+                        textBottomLeft = String.format("%2d%%", batteryPercentage);
+                        if (m100SansPercent && batteryPercentage == 100) {
+                            textBottomLeft = textBottomLeft.replace("%", "");
+                        }
+                        textBottomLeft = textBottomLeft.replace(" ", "!");
                     } else {
-                        textBottomLeft = String.format(Locale.getDefault(), "%3d%%", batteryPercentage);
-                    }
-                    textBottomLeft = textBottomLeft.replaceAll(" ", "!"); // " 9%" => "!9%"
-                } else if (batteryPercentage == 100) {
-                    if (m100SansPercent) {
-                        textBottomLeft = String.format(Locale.getDefault(), "%3d", batteryPercentage);
-                    } else {
-                        textBottomLeft = String.format(Locale.getDefault(), "%3d%%", batteryPercentage);
+                        textBottomLeft = String.format("%3d%%", batteryPercentage);
+                        textBottomLeft = textBottomLeft.replace(" ", "!");
                     }
                 } else {
                     if (m100SansPercent) {
