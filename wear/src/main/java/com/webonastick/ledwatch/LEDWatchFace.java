@@ -768,7 +768,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             sampleText = addLetterSpacing(sampleText, mLetterSpacing);
             float rawHeight = getTextHeight(sampleText, mTextPaintMiddle);
             float rawWidth = getTextWidth(sampleText, mTextPaintMiddle);
-            float textSize = (mSurfaceWidth - 16 * mPixelDensity * 0) / rawWidth * rawHeight;
+            float textSize = (mSurfaceWidth - 16 * mPixelDensity) / rawWidth * rawHeight;
             Log.d(TAG, String.format(
                     "sampleText [%s] rawHeight [%f] rawWidth [%f] textSize [%f]",
                     sampleText, rawHeight, rawWidth, textSize
