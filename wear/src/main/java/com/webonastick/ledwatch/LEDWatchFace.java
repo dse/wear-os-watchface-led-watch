@@ -961,6 +961,16 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             setAntiAlias(!mLowBitAmbient);
             setColor(mForegroundColor);
             setTextSkewX(textSkewX());
+            if (mThemeMode == LEDWatchThemeMode.LCD && !mAmbient) {
+                setShadowLayer(
+                        6 * mPixelDensity,
+                        6 * mPixelDensity,
+                        3 * mPixelDensity,
+                        0x66000000
+                );
+            } else {
+                clearShadowLayer();
+            }
         }
         
         private void setAntiAlias(boolean flag) {
@@ -1008,6 +1018,31 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             mTextPaintBottomLeft.setTextSkewX(skew);
             mTextPaintBottomRight.setTextSkewX(skew);
             mTextPaintBottomRight2.setTextSkewX(skew);
+            /* not applicable to upright mTextPaintAmPm */
+        }
+
+        private void setShadowLayer(float radius, float dx, float dy, int shadowColor) {
+            mTextPaintMiddle.setShadowLayer(radius, dx, dy, shadowColor);
+            mTextPaintLeft.setShadowLayer(radius, dx, dy, shadowColor);
+            mTextPaintRight.setShadowLayer(radius, dx, dy, shadowColor);
+            mTextPaintTopLeft.setShadowLayer(radius, dx, dy, shadowColor);
+            mTextPaintTopRight.setShadowLayer(radius, dx, dy, shadowColor);
+            mTextPaintBottomLeft.setShadowLayer(radius, dx, dy, shadowColor);
+            mTextPaintBottomRight.setShadowLayer(radius, dx, dy, shadowColor);
+            mTextPaintBottomRight2.setShadowLayer(radius, dx, dy, shadowColor);
+            mTextPaintAmPm.setShadowLayer(radius, dx, dy, shadowColor);
+        }
+
+        private void clearShadowLayer() {
+            mTextPaintMiddle.clearShadowLayer();
+            mTextPaintLeft.clearShadowLayer();
+            mTextPaintRight.clearShadowLayer();
+            mTextPaintTopLeft.clearShadowLayer();
+            mTextPaintTopRight.clearShadowLayer();
+            mTextPaintBottomLeft.clearShadowLayer();
+            mTextPaintBottomRight.clearShadowLayer();
+            mTextPaintBottomRight2.clearShadowLayer();
+            mTextPaintAmPm.clearShadowLayer();
         }
 
         /**
@@ -1318,6 +1353,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             setAntiAlias(!mLowBitAmbient);
             setColor(mForegroundColor);
             setAlpha(mFaintAlpha);
+            clearShadowLayer();
 
             backgroundCanvas.drawText(allSegmentsOnLeft, mXOffsetLeft, mYOffsetMiddle, mTextPaintLeft);
             backgroundCanvas.drawText(allSegmentsOnRight, mXOffsetRight, mYOffsetMiddle, mTextPaintRight);
