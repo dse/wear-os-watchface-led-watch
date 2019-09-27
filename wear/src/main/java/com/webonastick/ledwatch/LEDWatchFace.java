@@ -809,6 +809,14 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             mTextPaintMiddle.setTextSize(textSize);
             mTextPaintLeft.setTextSize(textSize);
             mTextPaintRight.setTextSize(textSize);
+
+            /* horizontal adjustment due to any skew */
+            float capHeight = getTextHeight("E", mTextPaintLeft);
+            float shift = capHeight / 2f * mTextPaintLeft.getTextSkewX();
+            mXOffsetLeft += shift;
+            mXOffsetRight += shift;
+            mXOffsetMiddle += shift;
+            mXOffsetAmPm += shift;
         }
         
         private void computeAmPmTextSizeAndHorizontalOffsets() {
@@ -840,6 +848,12 @@ public class LEDWatchFace extends CanvasWatchFaceService {
                     "textSize [%f] => smallerTextSize [%f] sampleText [%s] cookedWidth [%f] mXOffsetTopLeft [%f] mXOffsetTopRight [%f]",
                     textSize, smallerTextSize, sampleText, cookedWidth, mXOffsetTopLeft, mXOffsetTopRight
             ));
+
+            /* horizontal adjustment due to any skew */
+            float capHeightTop = getTextHeight("E", mTextPaintTopLeft);
+            float shift = capHeightTop / 2f * mTextPaintTopLeft.getTextSkewX();
+            mXOffsetTopLeft += shift;
+            mXOffsetTopRight += shift;
         }
 
         private void computeBatterySecondsTextSizeAndHorizontalOffsets() {
@@ -862,6 +876,13 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             if (sampleText.startsWith("1")) {
                 mXOffsetBottomLeft -= getTextWidthDifference("1", "8", mTextPaintBottomLeft);
             }
+
+            /* horizontal adjustment due to any skew */
+            float capHeightBottom = getTextHeight("E", mTextPaintBottomLeft);
+            float shift = capHeightBottom / 2f * mTextPaintBottomLeft.getTextSkewX();
+            mXOffsetBottomLeft += shift;
+            mXOffsetBottomRight += shift;
+            mXOffsetBottomRight2 += shift;
         }
 
         private void computeVerticalOffsets() {
