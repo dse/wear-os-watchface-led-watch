@@ -773,7 +773,6 @@ public class LEDWatchFace extends CanvasWatchFaceService {
         }
 
         private void updateSizeBasedProperties() {
-            Log.d(TAG, "updateSizeBasedProperties()");
             computeTimeOfDayTextSizeAndOffsets();
             computeAmPmTextSizeAndHorizontalOffsets();
             computeDayDateTextSizeAndHorizontalOffsets();
@@ -824,11 +823,6 @@ public class LEDWatchFace extends CanvasWatchFaceService {
 
             float textSizeAmPm = (textSize / 4f) / 0.7f; /* "A" or "P" */
             mTextPaintAmPm.setTextSize(textSizeAmPm);
-
-            Log.d(TAG, String.format(
-                    "textSize [%f] => textSizeAmPm [%f]",
-                    textSize, textSizeAmPm
-            ));
         }
 
         private void computeDayDateTextSizeAndHorizontalOffsets() {
@@ -843,11 +837,6 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             float cookedWidth = getTextWidth(sampleText, mTextPaintTopLeft);
             mXOffsetTopLeft = mSurfaceWidth / 2f - cookedWidth / 2f;
             mXOffsetTopRight = mSurfaceWidth / 2f + cookedWidth / 2f;
-
-            Log.d(TAG, String.format(
-                    "textSize [%f] => smallerTextSize [%f] sampleText [%s] cookedWidth [%f] mXOffsetTopLeft [%f] mXOffsetTopRight [%f]",
-                    textSize, smallerTextSize, sampleText, cookedWidth, mXOffsetTopLeft, mXOffsetTopRight
-            ));
 
             /* horizontal adjustment due to any skew */
             float capHeightTop = getTextHeight("E", mTextPaintTopLeft);
