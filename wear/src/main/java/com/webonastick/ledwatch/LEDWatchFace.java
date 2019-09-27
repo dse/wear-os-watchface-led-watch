@@ -1246,16 +1246,16 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             textLeft = addLetterSpacing(textLeft, mLetterSpacing);
             textRight = addLetterSpacing(textRight, mLetterSpacing);
             if (mShowDayOfWeek && textTopLeft != null) {
-                textTopLeft = addLetterSpacing(textTopLeft, mLetterSpacing2, Paint.Align.RIGHT);
+                textTopLeft = addLetterSpacing(textTopLeft, mLetterSpacing2);
             }
             if (mShowDayOfMonth && textTopRight != null) {
-                textTopRight = addLetterSpacing(textTopRight, mLetterSpacing2, Paint.Align.LEFT);
+                textTopRight = addLetterSpacing(textTopRight, mLetterSpacing2);
             }
             if (mShowBatteryLevel && textBottomLeft != null) {
-                textBottomLeft = addLetterSpacing(textBottomLeft, mLetterSpacing2, Paint.Align.RIGHT);
+                textBottomLeft = addLetterSpacing(textBottomLeft, mLetterSpacing2);
             }
             if (mShowSeconds && textBottomRight != null && !mAmbient) {
-                textBottomRight = addLetterSpacing(textBottomRight, mLetterSpacing2, Paint.Align.LEFT);
+                textBottomRight = addLetterSpacing(textBottomRight, mLetterSpacing2);
             }
 
             canvas.drawText(textLeft, mXOffsetLeft, mYOffsetMiddle, mTextPaintLeft);
@@ -1406,57 +1406,17 @@ public class LEDWatchFace extends CanvasWatchFaceService {
     /**
      * Insert at each point between two characters a number of spaces,
      * returning the resulting string.
-     * <p>
-     * If textAlign is Paint.Align.LEFT, also add pad spaces before the first character.
-     * <p>
-     * If textAlign is Paint.Align.RIGHT, also add pad spaces after the last character.
-     *
-     * @param s         the original string
-     * @param spacing   the number of spaces to insert at each location
-     * @param textAlign Paint.Align.LEFT, CENTER, or RIGHT
-     * @return the resulting string
      */
-    private static String addLetterSpacing(String s, int spacing, Paint.Align textAlign) {
-        return addLetterSpacing(s, spacing, textAlign, ' ');
-    }
-
-    private static String addLetterSpacing(String s, int spacing, char space) {
-        return addLetterSpacing(s, spacing, Paint.Align.CENTER, space);
-    }
-
     private static String addLetterSpacing(String s, int spacing) {
-        return addLetterSpacing(s, spacing, Paint.Align.CENTER, ' ');
-    }
-
-    private static String addLetterSpacing(String s, int spacing, Paint.Align textAlign, char space) {
+        final char space = ' ';
         if (spacing < 1) {
             return s;
         }
-        boolean insertSpaceAtEnd = false;
-        boolean insertSpaceAtBeginning = false;
-        if (textAlign == Paint.Align.LEFT) {
-            insertSpaceAtBeginning = true;
-        } else if (textAlign == Paint.Align.RIGHT) {
-            insertSpaceAtEnd = true;
-        }
-
         int length = s.length();
-        int halfSpacing = (int) Math.round(spacing / 2f);
         StringBuffer resultBuffer = new StringBuffer(s);
-
-        if (insertSpaceAtEnd) {
-            for (int j = 1; j <= halfSpacing; j += 1) {
-                resultBuffer.append(space);
-            }
-        }
         for (int i = length - 1; i >= 1; i -= 1) {
             for (int j = 1; j <= spacing; j += 1) {
                 resultBuffer.insert(i, space);
-            }
-        }
-        if (insertSpaceAtBeginning) {
-            for (int j = 1; j <= halfSpacing; j += 1) {
-                resultBuffer.insert(0, space);
             }
         }
         return resultBuffer.toString();
@@ -1467,5 +1427,4 @@ public class LEDWatchFace extends CanvasWatchFaceService {
         paint.getTextBounds(testString, 0, 1, bounds);
         return bounds.height();
     }
-
 }
