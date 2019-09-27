@@ -868,13 +868,13 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             sampleText = addLetterSpacing(sampleText, mLetterSpacing2);
             float cookedWidth = getTextWidth(sampleText, mTextPaintBottomLeft);
             if (sampleText.startsWith("1")) {
-                cookedWidth -= getTextWidthDifference("1", "8", mTextPaintBottomLeft);
+                cookedWidth -= getTextBoundsWidthDifference("1", "8", mTextPaintBottomLeft);
             }
             mXOffsetBottomRight = mSurfaceWidth / 2f + cookedWidth / 2f;
             mXOffsetBottomRight2 = mSurfaceWidth / 2f + cookedWidth / 2f;
             mXOffsetBottomLeft = mSurfaceWidth / 2f - cookedWidth / 2f;
             if (sampleText.startsWith("1")) {
-                mXOffsetBottomLeft -= getTextWidthDifference("1", "8", mTextPaintBottomLeft);
+                mXOffsetBottomLeft -= getTextBoundsWidthDifference("1", "8", mTextPaintBottomLeft);
             }
 
             /* horizontal adjustment due to any skew */
@@ -1389,7 +1389,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
         }
     }
 
-    private static float getTextWidthDifference(String s1, String s2, Paint textPaint) {
+    private static float getTextBoundsWidthDifference(String s1, String s2, Paint textPaint) {
         Rect bounds1 = new Rect();
         Rect bounds2 = new Rect();
         textPaint.getTextBounds(s1, 0, s1.length(), bounds1);
