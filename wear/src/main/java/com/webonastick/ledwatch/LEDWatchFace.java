@@ -937,7 +937,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             mTextPaintBottomLeft.setTypeface(mFourteenSegmentTypeface);
             mTextPaintBottomRight.setTypeface(mSevenSegmentTypeface);
             mTextPaintBottomRight2.setTypeface(mSixthsOfAPieTypeface);
-            mTextPaintAmPm.setTypeface(Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL));
+            mTextPaintAmPm.setTypeface(AM_PM_TYPEFACE);
             
             setAntiAlias(!mLowBitAmbient);
             setColor(mForegroundColor);
