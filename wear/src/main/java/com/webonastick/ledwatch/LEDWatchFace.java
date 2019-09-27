@@ -561,6 +561,15 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             }
         }
 
+        private boolean hasFaintSegments() {
+            switch (mThemeMode) {
+                case LCD:
+                    return false;
+                default:
+                    return true;
+            }
+        }
+
         private void updateProperties() {
             updateThemeBasedProperties();
             updateColors();
@@ -1102,17 +1111,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
         @Override
         public void onDraw(Canvas canvas, Rect bounds) {
             createBackgroundBitmap(canvas.getWidth(), canvas.getHeight());
-
-            // Draw the background.
-            if (mLowBitAmbient) {
-                canvas.drawColor(Color.BLACK);
-            } else {
-                if (mBackgroundBitmap != null && mFaintAlpha > 0) {
-                    canvas.drawBitmap(mBackgroundBitmap, 0, 0, null);
-                } else {
-                    canvas.drawRect(0, 0, bounds.width(), bounds.height(), mBackgroundPaint);
-                }
-            }
+            drawBackgroundBitmap(canvas, bounds);
 
             int batteryPercentage = 0;
             if (mShowBatteryLevel) {
@@ -1279,6 +1278,10 @@ public class LEDWatchFace extends CanvasWatchFaceService {
         }
 
         private void createBackgroundBitmap(int width, int height) {
+            if (!hasFaintSegments()) {
+                mBackgroundBitmap = null;
+                return;
+            }
             if (mLowBitAmbient) {
                 return;
             }
@@ -1341,6 +1344,21 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             }
 
             setAlpha(255);
+        }
+
+        private void drawBackgroundBitmap(Canvas canvas, Rect bounds) {
+            // Draw the background.
+            if (mLowBitAmbient) {
+                canvas.drawColor(Color.BLACK);
+            } else if (!hasFaintSegments()) {
+                canvas.drawColor(mBackgroundColor);
+            } else {
+                if (mBackgroundBitmap != null && mFaintAlpha > 0) {
+                    canvas.drawBitmap(mBackgroundBitmap, 0, 0, null);
+                } else {
+                    canvas.drawRect(0, 0, bounds.width(), bounds.height(), mBackgroundPaint);
+                }
+            }
         }
 
         /**
