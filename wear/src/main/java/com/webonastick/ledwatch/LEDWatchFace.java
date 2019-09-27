@@ -966,11 +966,20 @@ public class LEDWatchFace extends CanvasWatchFaceService {
                         6 * mPixelDensity,
                         6 * mPixelDensity,
                         3 * mPixelDensity,
-                        0x66000000
+                        (mForegroundColor & 0xffffff) | 0x66000000
+                );
+            } else if (mThemeMode == LEDWatchThemeMode.VINTAGE_LED && !mAmbient) {
+                setShadowLayer(
+                        12 * mPixelDensity,
+                        0,
+                        0,
+                        (mForegroundColor & 0xffffff) | 0xff000000
                 );
             } else {
                 clearShadowLayer();
             }
+
+            setAlpha(255);
         }
         
         private void setAntiAlias(boolean flag) {
@@ -1379,7 +1388,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
                 backgroundCanvas.drawText("P", mXOffsetAmPm, mYOffsetPm, mTextPaintAmPm);
             }
 
-            setAlpha(255);
+            updateTextPaintProperties();
         }
 
         private void drawBackgroundBitmap(Canvas canvas, Rect bounds) {
