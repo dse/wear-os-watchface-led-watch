@@ -963,16 +963,16 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             setTextSkewX(textSkewX());
             if (mThemeMode == LEDWatchThemeMode.LCD && !mAmbient) {
                 setShadowLayer(
-                        6 * mPixelDensity,
-                        6 * mPixelDensity,
-                        3 * mPixelDensity,
-                        (mForegroundColor & 0xffffff) | 0x66000000
+                        2f * mPixelDensity,
+                        2f * mPixelDensity,
+                        4f * mPixelDensity,
+                        (mForegroundColor & 0xffffff) | 0x33000000
                 );
             } else if (mThemeMode == LEDWatchThemeMode.VINTAGE_LED && !mAmbient) {
                 setShadowLayer(
-                        12 * mPixelDensity,
-                        0,
-                        0,
+                        6f * mPixelDensity,
+                        0f,
+                        0f,
                         (mForegroundColor & 0xffffff) | 0xff000000
                 );
             } else {
