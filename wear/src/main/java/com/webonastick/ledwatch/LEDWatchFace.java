@@ -1398,9 +1398,8 @@ public class LEDWatchFace extends CanvasWatchFaceService {
     }
 
     private static float getTextWidth(String s, Paint textPaint) {
-        return textPaint.getRunAdvance(
-                s, 0, s.length(), 0, s.length(), false, s.length()
-        );
+        float measureText = textPaint.measureText(s);
+        return measureText;
     }
 
     /**
