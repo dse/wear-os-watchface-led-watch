@@ -247,7 +247,9 @@ public class LEDWatchFace extends CanvasWatchFaceService {
         }
     }
 
+    /* color of faint segments, after transparency applied, will be about as bright as this */
     private static final int COLOR_DARK_RED = 0xff440000;
+
     private static final float LED_FAINT = HSPColor.fromRGB(COLOR_DARK_RED).perceivedBrightness();
     private static final float LCD_FAINT = LED_FAINT / 3f;
 
@@ -324,8 +326,6 @@ public class LEDWatchFace extends CanvasWatchFaceService {
 
         Bitmap mBackgroundBitmap;
 
-        /* CONFIGURABLE OPTIONS */
-
         private int mFaintAlpha = 0;
         private int mLetterSpacing = 0;
         private int mLetterSpacing2 = 0;
@@ -341,13 +341,15 @@ public class LEDWatchFace extends CanvasWatchFaceService {
         private final boolean mShowBatteryLevel = true;
         private final boolean mShowSeconds = true;
 
-        // if true: show "100" then "99%"
-        // if false: extra "1" segment to show "100%"
+        /* controls whether to display "100" or "100%" */
         private final boolean m100SansPercent = false;
 
         private Typeface mSixthsOfAPieTypeface;
 
-        private boolean mDemoTimeMode = false; /* for screenshots */
+        /* mainly for screenshots */
+        private boolean mDemoTimeMode = false;
+
+        /* mainly for determining whether mDemoTimeMode binding works */
         private boolean mEmulatorMode = false;
 
         private float mPixelDensity;
@@ -381,6 +383,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             }
         }
 
+        /* returns color to use as background in LCD mode, or foreground in other modes */
         private int getThemeColor() {
             Resources resources = LEDWatchFace.this.getResources();
             String resourceName = mThemeMode.colorResourceType + "_color_" + mThemeMode.resourceName + "_" + mThemeColor.resourceName;
@@ -391,6 +394,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             return resources.getInteger(resourceId);
         }
 
+        /* returns alpha level (0 to 255) for faint segments */
         private int getFaintAlpha() {
             switch (mThemeMode) {
                 case LED:
@@ -413,7 +417,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
         private int getFaintAlphaFromForeground(int color) {
             float brightness = HSPColor.fromRGB(color).perceivedBrightness();
             float relFaintBrightness = LED_FAINT / brightness;
-            int result = (int) (relFaintBrightness * 255f + 0.5f);
+            int result = Math.round(relFaintBrightness * 255f);
             return result;
         }
 
@@ -428,8 +432,8 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             float brightness = HSPColor.fromRGB(color).perceivedBrightness();
             float newBrightness = brightness - LCD_FAINT;
             float alpha = (brightness - newBrightness) / brightness;
-            alpha = (float) Math.min(alpha, 0.05f);
-            int result = (int) (alpha * 255f + 0.5f);
+            alpha = Math.min(alpha, 0.05f);
+            int result = Math.round(alpha * 255f);
             return result;
         }
 
@@ -446,7 +450,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
 
         private static final float VINTAGE_LED_TEXT_SIZE_RATIO = 0.875f;
 
-        /* as multiple of text size */
+        /* size of day, date, battery, and seconds, as multiple of text size of time of day display */
         private float getSmallerTextSizeRatio() {
             switch (mThemeMode) {
                 case LED:
@@ -485,7 +489,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             }
         }
 
-        /* as multiple of text size */
+        /* spacing between top (or bottom) line of text and time of day, as multiple of text size */
         private float getLineSpacingRatio() {
             switch (mThemeMode) {
                 case LED:
@@ -498,6 +502,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             }
         }
 
+        /* Vintage LED has a full 7-segment where the colon is, for verisimilitude */
         private boolean hasFullWidthColon() {
             switch (mThemeMode) {
                 case VINTAGE_LED:
@@ -507,6 +512,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             }
         }
 
+        /* Could be '-'. */
         private char colonCharacter() {
             switch (mThemeMode) {
                 case VINTAGE_LED:
@@ -557,6 +563,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
                 case VINTAGE_LED:
                     return 0f;
                 default:
+                    /* removes most of the italic skew, we want some but more subtle */
                     return 0.04f;
             }
         }
