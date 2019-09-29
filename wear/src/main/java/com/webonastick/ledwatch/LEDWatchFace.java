@@ -800,7 +800,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
         
         private void computeTimeOfDayTextSizeAndOffsets() {
             float textSizeForCalculations = 1000f;
-            float textWidth = mSurfaceWidth - LEFT_RIGHT_PADDING_DP * 2f * mPixelDensity;
+            float textWidth = mSurfaceWidth - dpToPixels(LEFT_RIGHT_PADDING_DP * 2);
             mTextPaintMiddle.setTextSize(textSizeForCalculations);
             String sampleText = hasFullWidthColon() ? "88888" : "88:88";
             sampleText = addLetterSpacing(sampleText, mLetterSpacing);
@@ -969,24 +969,32 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             setColor(mForegroundColor);
             setTextSkewX(textSkewX());
             if (mThemeMode == LEDWatchThemeMode.LCD && !mAmbient) {
+                float radius = dpToPixels(2);
+                float dx     = dpToPixels(2);
+                float dy     = dpToPixels(4);
                 setShadowLayer(
-                        2f * mPixelDensity,
-                        2f * mPixelDensity,
-                        4f * mPixelDensity,
-                        (mForegroundColor & 0xffffff) | 0x33000000
+                        radius, dx, dy, (mForegroundColor & 0xffffff) | 0x33000000
                 );
             } else if (mThemeMode == LEDWatchThemeMode.VINTAGE_LED && !mAmbient) {
+                float radius = dpToPixels(6);
                 setShadowLayer(
-                        6f * mPixelDensity,
-                        0f,
-                        0f,
-                        (mForegroundColor & 0xffffff) | 0xff000000
+                        radius, 0, 0, (mForegroundColor & 0xffffff) | 0xff000000
                 );
             } else {
                 clearShadowLayer();
             }
 
             setAlpha(255);
+        }
+
+        private float dpToPixels(float dp) {
+            if (mDemoTimeMode) {
+                return dp * mPixelDensity * Math.min(mSurfaceWidth, mSurfaceHeight) / 320f;
+            }
+            return dp * mPixelDensity;
+        }
+        private float dpToPixels(int dp) {
+            return dpToPixels((float) dp);
         }
         
         private void setAntiAlias(boolean flag) {
