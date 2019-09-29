@@ -60,7 +60,7 @@ public class MultiTapHandler<RegionType> {
             mRegion = null;
             mNumberOfTaps = -1;
         }
-            }
+    }
 
     public void close() {
         cancel();
