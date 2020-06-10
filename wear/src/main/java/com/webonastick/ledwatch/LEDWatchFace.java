@@ -21,14 +21,15 @@ import android.provider.Settings;
 import android.support.wearable.watchface.CanvasWatchFaceService;
 import android.support.wearable.watchface.WatchFaceStyle;
 import android.text.format.DateFormat;
-import android.util.Log;
 import android.view.Gravity;
 import android.view.SurfaceHolder;
 
 import java.lang.ref.WeakReference;
 import java.text.Normalizer;
 import java.util.Calendar;
+import java.util.HashMap;
 import java.util.Locale;
+import java.util.Map;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 
@@ -261,6 +262,13 @@ public class LEDWatchFace extends CanvasWatchFaceService {
 
     private class Engine extends CanvasWatchFaceService.Engine implements MultiTapEventHandler<Region> {
 
+        Engine() {
+            mThemeColors = new HashMap<LEDWatchThemeMode, LEDWatchThemeColor>();
+            mThemeColors.put(LEDWatchThemeMode.LED, LEDWatchThemeColor.BLUE);
+            mThemeColors.put(LEDWatchThemeMode.VINTAGE_LED, LEDWatchThemeColor.RED);
+            mThemeColors.put(LEDWatchThemeMode.LCD, LEDWatchThemeColor.WHITE);
+        }
+
         private final Handler mUpdateTimeHandler = new EngineHandler(this);
         private Calendar mCalendar;
         private final BroadcastReceiver mTimeZoneReceiver = new BroadcastReceiver() {
@@ -272,8 +280,10 @@ public class LEDWatchFace extends CanvasWatchFaceService {
         };
         private boolean mRegisteredTimeZoneReceiver = false;
 
-        private LEDWatchThemeMode mThemeMode;
-        private LEDWatchThemeColor mThemeColor;
+        private LEDWatchThemeMode  mThemeMode  = LEDWatchThemeMode.LED;
+
+        /* initialized in constructor */
+        private Map<LEDWatchThemeMode, LEDWatchThemeColor> mThemeColors;
 
         private DSEGFontFamily mDSEGFontFamily;
         private DSEGFontSize mDSEGFontSize;
@@ -358,7 +368,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
         private AmbientRefresher mAmbientRefresher;
         private ScreenTimeExtender mScreenTimeExtender;
 
-        private int getBackgroundColor() {
+        private int getBackgroundColorInt() {
             if (mAmbient) {
                 return Color.BLACK;
             }
@@ -367,11 +377,11 @@ public class LEDWatchFace extends CanvasWatchFaceService {
                 case VINTAGE_LED:
                     return Color.BLACK;
                 default:
-                    return getThemeColor();
+                    return getThemeColorInt();
             }
         }
 
-        private int getForegroundColor() {
+        private int getForegroundColorInt() {
             if (mAmbient) {
                 return Color.WHITE;
             }
@@ -379,14 +389,14 @@ public class LEDWatchFace extends CanvasWatchFaceService {
                 case LCD:
                     return Color.BLACK;
                 default:
-                    return getThemeColor();
+                    return getThemeColorInt();
             }
         }
 
         /* returns color to use as background in LCD mode, or foreground in other modes */
-        private int getThemeColor() {
+        private int getThemeColorInt() {
             Resources resources = LEDWatchFace.this.getResources();
-            String resourceName = mThemeMode.colorResourceType + "_color_" + mThemeMode.resourceName + "_" + mThemeColor.resourceName;
+            String resourceName = mThemeMode.colorResourceType + "_color_" + mThemeMode.resourceName + "_" + getCurrentThemeColor().resourceName;
             int resourceId = resources.getIdentifier(resourceName, "color", getPackageName());
             if (resourceId == 0) {
                 return Color.WHITE;
@@ -394,14 +404,22 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             return resources.getInteger(resourceId);
         }
 
+        private LEDWatchThemeColor getCurrentThemeColor() {
+            return mThemeColors.get(mThemeMode);
+        }
+
+        private void setCurrentThemeColor(LEDWatchThemeColor themeColor) {
+            mThemeColors.put(mThemeMode, themeColor);
+        }
+
         /* returns alpha level (0 to 255) for faint segments */
         private int getFaintAlpha() {
             switch (mThemeMode) {
                 case LED:
                 case VINTAGE_LED:
-                    return getFaintAlphaFromForeground(getForegroundColor());
+                    return getFaintAlphaFromForeground(getForegroundColorInt());
                 case LCD:
-                    return getFaintAlphaFromBackground(getBackgroundColor());
+                    return getFaintAlphaFromBackground(getBackgroundColorInt());
                 default:
                     return 0;
             }
@@ -437,11 +455,11 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             return result;
         }
 
-        private int getFaintForegroundColor() {
+        private int getFaintForegroundColorInt() {
             if (mLowBitAmbient) {
                 return Color.BLACK;
             }
-            int result = getForegroundColor();
+            int result = getForegroundColorInt();
             result = result & 0x00ffffff;
             int alpha = getFaintAlpha();
             result = result | ((alpha & 0xff) << 24);
@@ -633,9 +651,9 @@ public class LEDWatchFace extends CanvasWatchFaceService {
         }
 
         private void updateColors() {
-            mForegroundColor = getForegroundColor();
-            mBackgroundColor = getBackgroundColor();
-            mFaintForegroundColor = getFaintForegroundColor();
+            mForegroundColor = getForegroundColorInt();
+            mBackgroundColor = getBackgroundColorInt();
+            mFaintForegroundColor = getFaintForegroundColorInt();
             mBackgroundPaint = new Paint();
             mBackgroundPaint.setColor(mBackgroundColor);
         }
@@ -712,22 +730,28 @@ public class LEDWatchFace extends CanvasWatchFaceService {
         }
 
         private void getThemePreference() {
-            String themeColorName = mSharedPreferences.getString("theme_color", null);
-            mThemeColor = LEDWatchThemeColor.findThemeColorNamed(themeColorName);
-            if (mThemeColor == null) {
-                mThemeColor = LEDWatchThemeColor.WHITE;
-            }
             String themeModeName = mSharedPreferences.getString("theme_mode", null);
             mThemeMode = LEDWatchThemeMode.findThemeModeNamed(themeModeName);
             if (mThemeMode == null) {
                 mThemeMode = LEDWatchThemeMode.LED;
             }
+            for (LEDWatchThemeMode themeMode : LEDWatchThemeMode.values()) {
+                String key = "theme_color_" + themeMode.resourceName;
+                String themeColorName = mSharedPreferences.getString(key, null);
+                LEDWatchThemeColor themeColor = LEDWatchThemeColor.findThemeColorNamed(themeColorName);
+                if (themeColor != null) {
+                    mThemeColors.put(themeMode, themeColor);
+                }
+            }
         }
 
         private void saveThemePreference() {
             SharedPreferences.Editor editor = mSharedPreferences.edit();
-            editor.putString("theme_color", mThemeColor.resourceName);
             editor.putString("theme_mode", mThemeMode.resourceName);
+            for (LEDWatchThemeMode themeMode : LEDWatchThemeMode.values()) {
+                String key = "theme_color_" + themeMode.resourceName;
+                editor.putString(key, mThemeColors.get(themeMode).resourceName);
+            }
             editor.commit();
         }
 
@@ -1108,7 +1132,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
                 case MIDDLE:
                     switch (numberOfTaps) {
                         case 2:
-                            mThemeColor = mThemeColor.nextThemeColor();
+                            setCurrentThemeColor(getCurrentThemeColor().nextThemeColor());
                             saveThemePreference();
                             updateProperties();
                             mBackgroundBitmap = null;
