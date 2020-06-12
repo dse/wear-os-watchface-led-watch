@@ -80,6 +80,6 @@ public class ScreenTimeExtender {
         if (seconds <= 0) {
             return;
         }
-        // DO NOT DELETE
+        // PLACEHOLDER --- DO NOT DELETE
     }
 }
