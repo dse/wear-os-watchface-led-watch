@@ -751,183 +751,6 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             updateTimer();
         }
 
-        private void getThemePreference() {
-            String themeModeName = mSharedPreferences.getString("theme_mode", null);
-            mThemeMode = LEDWatchThemeMode.findThemeModeNamed(themeModeName);
-            if (mThemeMode == null) {
-                mThemeMode = LEDWatchThemeMode.LED;
-            }
-            for (LEDWatchThemeMode themeMode : LEDWatchThemeMode.values()) {
-                String key = "theme_color_" + themeMode.resourceName;
-                String themeColorName = mSharedPreferences.getString(key, null);
-                LEDWatchThemeColor themeColor = LEDWatchThemeColor.findThemeColorNamed(themeColorName);
-                if (themeColor != null) {
-                    mThemeColors.put(themeMode, themeColor);
-                }
-            }
-        }
-
-        private void saveThemePreference() {
-            SharedPreferences.Editor editor = mSharedPreferences.edit();
-            editor.putString("theme_mode", mThemeMode.resourceName);
-            for (LEDWatchThemeMode themeMode : LEDWatchThemeMode.values()) {
-                String key = "theme_color_" + themeMode.resourceName;
-                editor.putString(key, mThemeColors.get(themeMode).resourceName);
-            }
-            editor.commit();
-        }
-
-        private void registerReceiver() {
-            if (mRegisteredTimeZoneReceiver) {
-                return;
-            }
-            mRegisteredTimeZoneReceiver = true;
-            IntentFilter filter = new IntentFilter(Intent.ACTION_TIMEZONE_CHANGED);
-            LEDWatchFace.this.registerReceiver(mTimeZoneReceiver, filter);
-        }
-
-        private void unregisterReceiver() {
-            if (!mRegisteredTimeZoneReceiver) {
-                return;
-            }
-            mRegisteredTimeZoneReceiver = false;
-            LEDWatchFace.this.unregisterReceiver(mTimeZoneReceiver);
-        }
-
-        @Override
-        public void onSurfaceChanged(SurfaceHolder holder, int format, int width, int height) {
-            cancelMultiTap();
-            super.onSurfaceChanged(holder, format, width, height);
-            mPixelDensity = getResources().getDisplayMetrics().density;
-            mSurfaceWidth = width;
-            mSurfaceHeight = height;
-            mIsRound = getApplicationContext().getResources().getConfiguration().isScreenRound();
-            updateProperties();
-            mBackgroundBitmap = null;
-            if (!mAmbient) {
-                mScreenTimeExtender.clearIdle();
-            }
-        }
-
-        private void updateSizeBasedProperties() {
-            computeTimeOfDayTextSizeAndOffsets();
-            computeAmPmTextSizeAndHorizontalOffsets();
-            computeDayDateTextSizeAndHorizontalOffsets();
-            computeBatterySecondsTextSizeAndHorizontalOffsets();
-            computeVerticalOffsets();
-        }
-
-        private static final int LEFT_RIGHT_PADDING_DP = 4;
-
-        private void computeTimeOfDayTextSizeAndOffsets() {
-            float textSizeForCalculations = 1000f;
-            float textWidth = mSurfaceWidth - dpToPixels(LEFT_RIGHT_PADDING_DP * 2);
-            mTextPaintMiddle.setTextSize(textSizeForCalculations);
-            String sampleText = hasFullWidthColon() ? "88888" : "88:88";
-            sampleText = addLetterSpacing(sampleText, mLetterSpacing);
-            float rawTextHeight = getTextHeight(sampleText, mTextPaintMiddle);
-            float rawTextWidth  = getTextWidth(sampleText, mTextPaintMiddle);
-            float textSize   = textSizeForCalculations / rawTextWidth * textWidth;
-            float multiplier = 1f;
-            if (mIsRound || mDemoTimeMode) {
-                float angle = (float) Math.atan2(rawTextHeight, rawTextWidth);
-                multiplier = (float) Math.cos(angle);
-            }
-            if (mThemeMode == LEDWatchThemeMode.VINTAGE_LED) {
-                multiplier *= VINTAGE_LED_TEXT_SIZE_RATIO;
-            }
-            textSize *= multiplier;
-            textWidth *= multiplier;
-            mXOffsetAmPm = mSurfaceWidth / 2f - textWidth / 2f;
-            mXOffsetLeft = mSurfaceWidth / 2f - textWidth / 2f;
-            mXOffsetRight = mSurfaceWidth / 2f + textWidth / 2f;
-            mXOffsetMiddle = mSurfaceWidth / 2f;
-            mTextPaintMiddle.setTextSize(textSize);
-            mTextPaintLeft.setTextSize(textSize);
-            mTextPaintRight.setTextSize(textSize);
-
-            /* horizontal adjustment due to any skew */
-            float capHeight = getTextHeight("E", mTextPaintLeft);
-            float shift = capHeight / 2f * mTextPaintLeft.getTextSkewX();
-            mXOffsetLeft += shift;
-            mXOffsetRight += shift;
-            mXOffsetMiddle += shift;
-            mXOffsetAmPm += shift;
-        }
-
-        private void computeAmPmTextSizeAndHorizontalOffsets() {
-            float textSize = mTextPaintMiddle.getTextSize();
-
-            float textSizeAmPm = (textSize / 4f) / 0.7f; /* "A" or "P" */
-            mTextPaintAmPm.setTextSize(textSizeAmPm);
-        }
-
-        private void computeDayDateTextSizeAndHorizontalOffsets() {
-            float textSize = mTextPaintMiddle.getTextSize();
-            float smallerTextSize = textSize * mSmallerTextSizeRatio;
-
-            mTextPaintTopLeft.setTextSize(smallerTextSize);
-            mTextPaintTopRight.setTextSize(smallerTextSize);
-
-            String sampleText = topLeftSegments() + topRightSegments();
-            sampleText = addLetterSpacing(sampleText, mLetterSpacing2);
-            float cookedWidth = getTextWidth(sampleText, mTextPaintTopLeft);
-            mXOffsetTopLeft = mSurfaceWidth / 2f - cookedWidth / 2f;
-            mXOffsetTopRight = mSurfaceWidth / 2f + cookedWidth / 2f;
-
-            /* horizontal adjustment due to any skew */
-            float capHeightTop = getTextHeight("E", mTextPaintTopLeft);
-            float shift = capHeightTop / 2f * mTextPaintTopLeft.getTextSkewX();
-            mXOffsetTopLeft += shift;
-            mXOffsetTopRight += shift;
-        }
-
-        private void computeBatterySecondsTextSizeAndHorizontalOffsets() {
-            float textSize = mTextPaintMiddle.getTextSize();
-            float smallerTextSize = textSize * mSmallerTextSizeRatio;
-
-            mTextPaintBottomLeft.setTextSize(smallerTextSize);
-            mTextPaintBottomRight.setTextSize(smallerTextSize);
-            mTextPaintBottomRight2.setTextSize(smallerTextSize);
-
-            String sampleText = bottomLeftSegments() + bottomRightSegments();
-            sampleText = addLetterSpacing(sampleText, mLetterSpacing2);
-            float cookedWidth = getTextWidth(sampleText, mTextPaintBottomLeft);
-            if (sampleText.startsWith("1")) {
-                cookedWidth -= getTextBoundsWidthDifference("1", "8", mTextPaintBottomLeft);
-            }
-            mXOffsetBottomRight = mSurfaceWidth / 2f + cookedWidth / 2f;
-            mXOffsetBottomRight2 = mSurfaceWidth / 2f + cookedWidth / 2f;
-            mXOffsetBottomLeft = mSurfaceWidth / 2f - cookedWidth / 2f;
-            if (sampleText.startsWith("1")) {
-                mXOffsetBottomLeft -= getTextBoundsWidthDifference("1", "8", mTextPaintBottomLeft);
-            }
-
-            /* horizontal adjustment due to any skew */
-            float capHeightBottom = getTextHeight("E", mTextPaintBottomLeft);
-            float shift = capHeightBottom / 2f * mTextPaintBottomLeft.getTextSkewX();
-            mXOffsetBottomLeft += shift;
-            mXOffsetBottomRight += shift;
-            mXOffsetBottomRight2 += shift;
-        }
-
-        private void computeVerticalOffsets() {
-            float textSize = mTextPaintMiddle.getTextSize();
-            float textSizeAmPm = mTextPaintAmPm.getTextSize();
-
-            float textAscent = -textSize;
-            float textAscentAmPm = -textSizeAmPm * 0.7f;
-            float lineSpacing = textSize * getLineSpacingRatio();
-            mYOffsetMiddle = mSurfaceHeight / 2f - textAscent / 2f;
-            mYOffsetTop = mYOffsetMiddle + textAscent - lineSpacing;
-            mYOffsetBottom = mYOffsetMiddle - textAscent * mSmallerTextSizeRatio + lineSpacing;
-            mYOffsetAm = mSurfaceHeight / 2f + textAscent / 4f - textAscentAmPm / 2f;
-            mYOffsetPm = mSurfaceHeight / 2f - textAscent / 4f - textAscentAmPm / 2f;
-
-            mYOffsetTopMiddle = mYOffsetMiddle + textAscent - lineSpacing / 2f;
-            mYOffsetMiddleBottom = mYOffsetMiddle + lineSpacing / 2f;
-        }
-
         @Override
         public void onPropertiesChanged(Bundle properties) {
             super.onPropertiesChanged(properties);
@@ -965,129 +788,24 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             mScreenTimeExtender.clearIdle();
         }
 
-        private void updateTextPaintProperties() {
-            mTextPaintMiddle.setTextAlign(Paint.Align.CENTER);
-            mTextPaintLeft.setTextAlign(Paint.Align.LEFT);
-            mTextPaintRight.setTextAlign(Paint.Align.RIGHT);
-            mTextPaintTopLeft.setTextAlign(Paint.Align.LEFT);
-            mTextPaintTopRight.setTextAlign(Paint.Align.RIGHT);
-            mTextPaintBottomLeft.setTextAlign(Paint.Align.LEFT);
-            mTextPaintBottomRight.setTextAlign(Paint.Align.RIGHT);
-            mTextPaintBottomRight2.setTextAlign(Paint.Align.RIGHT);
-            mTextPaintAmPm.setTextAlign(Paint.Align.LEFT);
+        // @Override
+        // public void onInterruptionFilterChanged(int interruptionFilter) {
+        //     super.onInterruptionFilterChanged(interruptionFilter);
+        // }
 
-            mTextPaintMiddle.setTypeface(mSevenSegmentTypeface);
-            mTextPaintLeft.setTypeface(mSevenSegmentTypeface);
-            mTextPaintRight.setTypeface(mSevenSegmentTypeface);
-            mTextPaintTopLeft.setTypeface(mFourteenSegmentTypeface);
-            mTextPaintTopRight.setTypeface(mSevenSegmentTypeface);
-            mTextPaintBottomLeft.setTypeface(mFourteenSegmentTypeface);
-            mTextPaintBottomRight.setTypeface(mSevenSegmentTypeface);
-            mTextPaintBottomRight2.setTypeface(mSixthsOfAPieTypeface);
-            mTextPaintAmPm.setTypeface(AM_PM_TYPEFACE);
-
-            setAntiAlias(!mLowBitAmbient);
-            setColor(mForegroundColor);
-            setTextSkewX(textSkewX());
-            if (mThemeMode == LEDWatchThemeMode.LCD && !mAmbient) {
-                float radius = dpToPixels(2);
-                float dx     = dpToPixels(2);
-                float dy     = dpToPixels(4);
-                setShadowLayer(
-                        radius, dx, dy, (mForegroundColor & 0xffffff) | 0x33000000
-                );
-            } else if (mThemeMode == LEDWatchThemeMode.VINTAGE_LED && !mAmbient) {
-                float radius = dpToPixels(6);
-                setShadowLayer(
-                        radius, 0, 0, (mForegroundColor & 0xffffff) | 0xff000000
-                );
-            } else {
-                clearShadowLayer();
+        @Override
+        public void onSurfaceChanged(SurfaceHolder holder, int format, int width, int height) {
+            cancelMultiTap();
+            super.onSurfaceChanged(holder, format, width, height);
+            mPixelDensity = getResources().getDisplayMetrics().density;
+            mSurfaceWidth = width;
+            mSurfaceHeight = height;
+            mIsRound = getApplicationContext().getResources().getConfiguration().isScreenRound();
+            updateProperties();
+            mBackgroundBitmap = null;
+            if (!mAmbient) {
+                mScreenTimeExtender.clearIdle();
             }
-
-            setAlpha(255);
-        }
-
-        private float dpToPixels(float dp) {
-            if (mDemoTimeMode) {
-                return dp * mPixelDensity * Math.min(mSurfaceWidth, mSurfaceHeight) / 320f;
-            }
-            return dp * mPixelDensity;
-        }
-        private float dpToPixels(int dp) {
-            return dpToPixels((float) dp);
-        }
-
-        private void setAntiAlias(boolean flag) {
-            mTextPaintMiddle.setAntiAlias(flag);
-            mTextPaintLeft.setAntiAlias(flag);
-            mTextPaintRight.setAntiAlias(flag);
-            mTextPaintTopLeft.setAntiAlias(flag);
-            mTextPaintTopRight.setAntiAlias(flag);
-            mTextPaintBottomLeft.setAntiAlias(flag);
-            mTextPaintBottomRight.setAntiAlias(flag);
-            mTextPaintBottomRight2.setAntiAlias(flag);
-            mTextPaintAmPm.setAntiAlias(flag);
-        }
-
-        private void setColor(int color) {
-            mTextPaintMiddle.setColor(color);
-            mTextPaintLeft.setColor(color);
-            mTextPaintRight.setColor(color);
-            mTextPaintTopLeft.setColor(color);
-            mTextPaintTopRight.setColor(color);
-            mTextPaintBottomLeft.setColor(color);
-            mTextPaintBottomRight.setColor(color);
-            mTextPaintBottomRight2.setColor(color);
-            mTextPaintAmPm.setColor(color);
-        }
-
-        private void setAlpha(int alpha) {
-            mTextPaintMiddle.setAlpha(alpha);
-            mTextPaintLeft.setAlpha(alpha);
-            mTextPaintRight.setAlpha(alpha);
-            mTextPaintTopLeft.setAlpha(alpha);
-            mTextPaintTopRight.setAlpha(alpha);
-            mTextPaintBottomLeft.setAlpha(alpha);
-            mTextPaintBottomRight.setAlpha(alpha);
-            mTextPaintBottomRight2.setAlpha(alpha);
-            mTextPaintAmPm.setAlpha(alpha);
-        }
-
-        private void setTextSkewX(float skew) {
-            mTextPaintMiddle.setTextSkewX(skew);
-            mTextPaintLeft.setTextSkewX(skew);
-            mTextPaintRight.setTextSkewX(skew);
-            mTextPaintTopLeft.setTextSkewX(skew);
-            mTextPaintTopRight.setTextSkewX(skew);
-            mTextPaintBottomLeft.setTextSkewX(skew);
-            mTextPaintBottomRight.setTextSkewX(skew);
-            mTextPaintBottomRight2.setTextSkewX(skew);
-            /* not applicable to upright mTextPaintAmPm */
-        }
-
-        private void setShadowLayer(float radius, float dx, float dy, int shadowColor) {
-            mTextPaintMiddle.setShadowLayer(radius, dx, dy, shadowColor);
-            mTextPaintLeft.setShadowLayer(radius, dx, dy, shadowColor);
-            mTextPaintRight.setShadowLayer(radius, dx, dy, shadowColor);
-            mTextPaintTopLeft.setShadowLayer(radius, dx, dy, shadowColor);
-            mTextPaintTopRight.setShadowLayer(radius, dx, dy, shadowColor);
-            mTextPaintBottomLeft.setShadowLayer(radius, dx, dy, shadowColor);
-            mTextPaintBottomRight.setShadowLayer(radius, dx, dy, shadowColor);
-            mTextPaintBottomRight2.setShadowLayer(radius, dx, dy, shadowColor);
-            mTextPaintAmPm.setShadowLayer(radius, dx, dy, shadowColor);
-        }
-
-        private void clearShadowLayer() {
-            mTextPaintMiddle.clearShadowLayer();
-            mTextPaintLeft.clearShadowLayer();
-            mTextPaintRight.clearShadowLayer();
-            mTextPaintTopLeft.clearShadowLayer();
-            mTextPaintTopRight.clearShadowLayer();
-            mTextPaintBottomLeft.clearShadowLayer();
-            mTextPaintBottomRight.clearShadowLayer();
-            mTextPaintBottomRight2.clearShadowLayer();
-            mTextPaintAmPm.clearShadowLayer();
         }
 
         /**
@@ -1119,6 +837,8 @@ public class LEDWatchFace extends CanvasWatchFaceService {
                 mScreenTimeExtender.clearIdle();
             }
         }
+
+        // BEGIN MULTI-TAP
 
         public void onMultiTapCommand(Region region, int numberOfTaps) {
             switch (region) {
@@ -1169,24 +889,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             }
         }
 
-        private boolean is24Hour() {
-            if (mDemoTimeMode) {
-                return false;
-            }
-            int is24HourInt;
-            try {
-                is24HourInt = Settings.System.getInt(getContentResolver(), Settings.System.TIME_12_24);
-            } catch (Settings.SettingNotFoundException e) {
-                is24HourInt = -1;
-            }
-            if (is24HourInt == 24) {
-                return true;
-            } else if (is24HourInt == 12) {
-                return false;
-            } else {
-                return DateFormat.is24HourFormat(LEDWatchFace.this);
-            }
-        }
+        // END MULTI-TAP
 
         @Override
         public void onDraw(Canvas canvas, Rect bounds) {
@@ -1357,6 +1060,348 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             }
         }
 
+        private void registerReceiver() {
+            if (mRegisteredTimeZoneReceiver) {
+                return;
+            }
+            mRegisteredTimeZoneReceiver = true;
+            IntentFilter filter = new IntentFilter(Intent.ACTION_TIMEZONE_CHANGED);
+            LEDWatchFace.this.registerReceiver(mTimeZoneReceiver, filter);
+        }
+
+        private void unregisterReceiver() {
+            if (!mRegisteredTimeZoneReceiver) {
+                return;
+            }
+            mRegisteredTimeZoneReceiver = false;
+            LEDWatchFace.this.unregisterReceiver(mTimeZoneReceiver);
+        }
+
+        /**
+         * Starts the {@link #mUpdateTimeHandler} timer if it should
+         * be running and isn't currently or stops it if it shouldn't
+         * be running but currently is.
+         */
+        private void updateTimer() {
+            mUpdateTimeHandler.removeMessages(MSG_UPDATE_TIME);
+            if (shouldTimerBeRunning()) {
+                mUpdateTimeHandler.sendEmptyMessage(MSG_UPDATE_TIME);
+            }
+        }
+
+        /**
+         * Returns whether the {@link #mUpdateTimeHandler} timer
+         * should be running. The timer should only run when we're
+         * visible and in interactive mode.
+         */
+        private boolean shouldTimerBeRunning() {
+            return isVisible() && !isInAmbientMode();
+        }
+
+        /**
+         * Handle updating the time periodically in interactive mode.
+         */
+        private void handleUpdateTimeMessage() {
+            invalidate();
+            if (shouldTimerBeRunning()) {
+                long timeMs = System.currentTimeMillis();
+                long delayMs = INTERACTIVE_UPDATE_RATE_MS
+                        - (timeMs % INTERACTIVE_UPDATE_RATE_MS);
+                mUpdateTimeHandler.sendEmptyMessageDelayed(MSG_UPDATE_TIME, delayMs);
+            }
+        }
+
+        // @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+        private void getThemePreference() {
+            String themeModeName = mSharedPreferences.getString("theme_mode", null);
+            mThemeMode = LEDWatchThemeMode.findThemeModeNamed(themeModeName);
+            if (mThemeMode == null) {
+                mThemeMode = LEDWatchThemeMode.LED;
+            }
+            for (LEDWatchThemeMode themeMode : LEDWatchThemeMode.values()) {
+                String key = "theme_color_" + themeMode.resourceName;
+                String themeColorName = mSharedPreferences.getString(key, null);
+                LEDWatchThemeColor themeColor = LEDWatchThemeColor.findThemeColorNamed(themeColorName);
+                if (themeColor != null) {
+                    mThemeColors.put(themeMode, themeColor);
+                }
+            }
+        }
+
+        private void saveThemePreference() {
+            SharedPreferences.Editor editor = mSharedPreferences.edit();
+            editor.putString("theme_mode", mThemeMode.resourceName);
+            for (LEDWatchThemeMode themeMode : LEDWatchThemeMode.values()) {
+                String key = "theme_color_" + themeMode.resourceName;
+                editor.putString(key, mThemeColors.get(themeMode).resourceName);
+            }
+            editor.commit();
+        }
+
+        private void updateSizeBasedProperties() {
+            computeTimeOfDayTextSizeAndOffsets();
+            computeAmPmTextSizeAndHorizontalOffsets();
+            computeDayDateTextSizeAndHorizontalOffsets();
+            computeBatterySecondsTextSizeAndHorizontalOffsets();
+            computeVerticalOffsets();
+        }
+
+        private static final int LEFT_RIGHT_PADDING_DP = 4;
+
+        private void computeTimeOfDayTextSizeAndOffsets() {
+            float textSizeForCalculations = 1000f;
+            float textWidth = mSurfaceWidth - dpToPixels(LEFT_RIGHT_PADDING_DP * 2);
+            mTextPaintMiddle.setTextSize(textSizeForCalculations);
+            String sampleText = hasFullWidthColon() ? "88888" : "88:88";
+            sampleText = addLetterSpacing(sampleText, mLetterSpacing);
+            float rawTextHeight = getTextHeight(sampleText, mTextPaintMiddle);
+            float rawTextWidth  = getTextWidth(sampleText, mTextPaintMiddle);
+            float textSize   = textSizeForCalculations / rawTextWidth * textWidth;
+            float multiplier = 1f;
+            if (mIsRound || mDemoTimeMode) {
+                float angle = (float) Math.atan2(rawTextHeight, rawTextWidth);
+                multiplier = (float) Math.cos(angle);
+            }
+            if (mThemeMode == LEDWatchThemeMode.VINTAGE_LED) {
+                multiplier *= VINTAGE_LED_TEXT_SIZE_RATIO;
+            }
+            textSize *= multiplier;
+            textWidth *= multiplier;
+            mXOffsetAmPm = mSurfaceWidth / 2f - textWidth / 2f;
+            mXOffsetLeft = mSurfaceWidth / 2f - textWidth / 2f;
+            mXOffsetRight = mSurfaceWidth / 2f + textWidth / 2f;
+            mXOffsetMiddle = mSurfaceWidth / 2f;
+            mTextPaintMiddle.setTextSize(textSize);
+            mTextPaintLeft.setTextSize(textSize);
+            mTextPaintRight.setTextSize(textSize);
+
+            /* horizontal adjustment due to any skew */
+            float capHeight = getTextHeight("E", mTextPaintLeft);
+            float shift = capHeight / 2f * mTextPaintLeft.getTextSkewX();
+            mXOffsetLeft += shift;
+            mXOffsetRight += shift;
+            mXOffsetMiddle += shift;
+            mXOffsetAmPm += shift;
+        }
+
+        private void computeAmPmTextSizeAndHorizontalOffsets() {
+            float textSize = mTextPaintMiddle.getTextSize();
+
+            float textSizeAmPm = (textSize / 4f) / 0.7f; /* "A" or "P" */
+            mTextPaintAmPm.setTextSize(textSizeAmPm);
+        }
+
+        private void computeDayDateTextSizeAndHorizontalOffsets() {
+            float textSize = mTextPaintMiddle.getTextSize();
+            float smallerTextSize = textSize * mSmallerTextSizeRatio;
+
+            mTextPaintTopLeft.setTextSize(smallerTextSize);
+            mTextPaintTopRight.setTextSize(smallerTextSize);
+
+            String sampleText = topLeftSegments() + topRightSegments();
+            sampleText = addLetterSpacing(sampleText, mLetterSpacing2);
+            float cookedWidth = getTextWidth(sampleText, mTextPaintTopLeft);
+            mXOffsetTopLeft = mSurfaceWidth / 2f - cookedWidth / 2f;
+            mXOffsetTopRight = mSurfaceWidth / 2f + cookedWidth / 2f;
+
+            /* horizontal adjustment due to any skew */
+            float capHeightTop = getTextHeight("E", mTextPaintTopLeft);
+            float shift = capHeightTop / 2f * mTextPaintTopLeft.getTextSkewX();
+            mXOffsetTopLeft += shift;
+            mXOffsetTopRight += shift;
+        }
+
+        private void computeBatterySecondsTextSizeAndHorizontalOffsets() {
+            float textSize = mTextPaintMiddle.getTextSize();
+            float smallerTextSize = textSize * mSmallerTextSizeRatio;
+
+            mTextPaintBottomLeft.setTextSize(smallerTextSize);
+            mTextPaintBottomRight.setTextSize(smallerTextSize);
+            mTextPaintBottomRight2.setTextSize(smallerTextSize);
+
+            String sampleText = bottomLeftSegments() + bottomRightSegments();
+            sampleText = addLetterSpacing(sampleText, mLetterSpacing2);
+            float cookedWidth = getTextWidth(sampleText, mTextPaintBottomLeft);
+            if (sampleText.startsWith("1")) {
+                cookedWidth -= getTextBoundsWidthDifference("1", "8", mTextPaintBottomLeft);
+            }
+            mXOffsetBottomRight = mSurfaceWidth / 2f + cookedWidth / 2f;
+            mXOffsetBottomRight2 = mSurfaceWidth / 2f + cookedWidth / 2f;
+            mXOffsetBottomLeft = mSurfaceWidth / 2f - cookedWidth / 2f;
+            if (sampleText.startsWith("1")) {
+                mXOffsetBottomLeft -= getTextBoundsWidthDifference("1", "8", mTextPaintBottomLeft);
+            }
+
+            /* horizontal adjustment due to any skew */
+            float capHeightBottom = getTextHeight("E", mTextPaintBottomLeft);
+            float shift = capHeightBottom / 2f * mTextPaintBottomLeft.getTextSkewX();
+            mXOffsetBottomLeft += shift;
+            mXOffsetBottomRight += shift;
+            mXOffsetBottomRight2 += shift;
+        }
+
+        private void computeVerticalOffsets() {
+            float textSize = mTextPaintMiddle.getTextSize();
+            float textSizeAmPm = mTextPaintAmPm.getTextSize();
+
+            float textAscent = -textSize;
+            float textAscentAmPm = -textSizeAmPm * 0.7f;
+            float lineSpacing = textSize * getLineSpacingRatio();
+            mYOffsetMiddle = mSurfaceHeight / 2f - textAscent / 2f;
+            mYOffsetTop = mYOffsetMiddle + textAscent - lineSpacing;
+            mYOffsetBottom = mYOffsetMiddle - textAscent * mSmallerTextSizeRatio + lineSpacing;
+            mYOffsetAm = mSurfaceHeight / 2f + textAscent / 4f - textAscentAmPm / 2f;
+            mYOffsetPm = mSurfaceHeight / 2f - textAscent / 4f - textAscentAmPm / 2f;
+
+            mYOffsetTopMiddle = mYOffsetMiddle + textAscent - lineSpacing / 2f;
+            mYOffsetMiddleBottom = mYOffsetMiddle + lineSpacing / 2f;
+        }
+
+        private void updateTextPaintProperties() {
+            mTextPaintMiddle.setTextAlign(Paint.Align.CENTER);
+            mTextPaintLeft.setTextAlign(Paint.Align.LEFT);
+            mTextPaintRight.setTextAlign(Paint.Align.RIGHT);
+            mTextPaintTopLeft.setTextAlign(Paint.Align.LEFT);
+            mTextPaintTopRight.setTextAlign(Paint.Align.RIGHT);
+            mTextPaintBottomLeft.setTextAlign(Paint.Align.LEFT);
+            mTextPaintBottomRight.setTextAlign(Paint.Align.RIGHT);
+            mTextPaintBottomRight2.setTextAlign(Paint.Align.RIGHT);
+            mTextPaintAmPm.setTextAlign(Paint.Align.LEFT);
+
+            mTextPaintMiddle.setTypeface(mSevenSegmentTypeface);
+            mTextPaintLeft.setTypeface(mSevenSegmentTypeface);
+            mTextPaintRight.setTypeface(mSevenSegmentTypeface);
+            mTextPaintTopLeft.setTypeface(mFourteenSegmentTypeface);
+            mTextPaintTopRight.setTypeface(mSevenSegmentTypeface);
+            mTextPaintBottomLeft.setTypeface(mFourteenSegmentTypeface);
+            mTextPaintBottomRight.setTypeface(mSevenSegmentTypeface);
+            mTextPaintBottomRight2.setTypeface(mSixthsOfAPieTypeface);
+            mTextPaintAmPm.setTypeface(AM_PM_TYPEFACE);
+
+            setAntiAlias(!mLowBitAmbient);
+            setColor(mForegroundColor);
+            setTextSkewX(textSkewX());
+            if (mThemeMode == LEDWatchThemeMode.LCD && !mAmbient) {
+                float radius = dpToPixels(2);
+                float dx     = dpToPixels(2);
+                float dy     = dpToPixels(4);
+                setShadowLayer(
+                        radius, dx, dy, (mForegroundColor & 0xffffff) | 0x33000000
+                );
+            } else if (mThemeMode == LEDWatchThemeMode.VINTAGE_LED && !mAmbient) {
+                float radius = dpToPixels(6);
+                setShadowLayer(
+                        radius, 0, 0, (mForegroundColor & 0xffffff) | 0xff000000
+                );
+            } else {
+                clearShadowLayer();
+            }
+
+            setAlpha(255);
+        }
+
+        private float dpToPixels(float dp) {
+            if (mDemoTimeMode) {
+                return dp * mPixelDensity * Math.min(mSurfaceWidth, mSurfaceHeight) / 320f;
+            }
+            return dp * mPixelDensity;
+        }
+        private float dpToPixels(int dp) {
+            return dpToPixels((float) dp);
+        }
+
+        private void setAntiAlias(boolean flag) {
+            mTextPaintMiddle.setAntiAlias(flag);
+            mTextPaintLeft.setAntiAlias(flag);
+            mTextPaintRight.setAntiAlias(flag);
+            mTextPaintTopLeft.setAntiAlias(flag);
+            mTextPaintTopRight.setAntiAlias(flag);
+            mTextPaintBottomLeft.setAntiAlias(flag);
+            mTextPaintBottomRight.setAntiAlias(flag);
+            mTextPaintBottomRight2.setAntiAlias(flag);
+            mTextPaintAmPm.setAntiAlias(flag);
+        }
+
+        private void setColor(int color) {
+            mTextPaintMiddle.setColor(color);
+            mTextPaintLeft.setColor(color);
+            mTextPaintRight.setColor(color);
+            mTextPaintTopLeft.setColor(color);
+            mTextPaintTopRight.setColor(color);
+            mTextPaintBottomLeft.setColor(color);
+            mTextPaintBottomRight.setColor(color);
+            mTextPaintBottomRight2.setColor(color);
+            mTextPaintAmPm.setColor(color);
+        }
+
+        private void setAlpha(int alpha) {
+            mTextPaintMiddle.setAlpha(alpha);
+            mTextPaintLeft.setAlpha(alpha);
+            mTextPaintRight.setAlpha(alpha);
+            mTextPaintTopLeft.setAlpha(alpha);
+            mTextPaintTopRight.setAlpha(alpha);
+            mTextPaintBottomLeft.setAlpha(alpha);
+            mTextPaintBottomRight.setAlpha(alpha);
+            mTextPaintBottomRight2.setAlpha(alpha);
+            mTextPaintAmPm.setAlpha(alpha);
+        }
+
+        private void setTextSkewX(float skew) {
+            mTextPaintMiddle.setTextSkewX(skew);
+            mTextPaintLeft.setTextSkewX(skew);
+            mTextPaintRight.setTextSkewX(skew);
+            mTextPaintTopLeft.setTextSkewX(skew);
+            mTextPaintTopRight.setTextSkewX(skew);
+            mTextPaintBottomLeft.setTextSkewX(skew);
+            mTextPaintBottomRight.setTextSkewX(skew);
+            mTextPaintBottomRight2.setTextSkewX(skew);
+            /* not applicable to upright mTextPaintAmPm */
+        }
+
+        private void setShadowLayer(float radius, float dx, float dy, int shadowColor) {
+            mTextPaintMiddle.setShadowLayer(radius, dx, dy, shadowColor);
+            mTextPaintLeft.setShadowLayer(radius, dx, dy, shadowColor);
+            mTextPaintRight.setShadowLayer(radius, dx, dy, shadowColor);
+            mTextPaintTopLeft.setShadowLayer(radius, dx, dy, shadowColor);
+            mTextPaintTopRight.setShadowLayer(radius, dx, dy, shadowColor);
+            mTextPaintBottomLeft.setShadowLayer(radius, dx, dy, shadowColor);
+            mTextPaintBottomRight.setShadowLayer(radius, dx, dy, shadowColor);
+            mTextPaintBottomRight2.setShadowLayer(radius, dx, dy, shadowColor);
+            mTextPaintAmPm.setShadowLayer(radius, dx, dy, shadowColor);
+        }
+
+        private void clearShadowLayer() {
+            mTextPaintMiddle.clearShadowLayer();
+            mTextPaintLeft.clearShadowLayer();
+            mTextPaintRight.clearShadowLayer();
+            mTextPaintTopLeft.clearShadowLayer();
+            mTextPaintTopRight.clearShadowLayer();
+            mTextPaintBottomLeft.clearShadowLayer();
+            mTextPaintBottomRight.clearShadowLayer();
+            mTextPaintBottomRight2.clearShadowLayer();
+            mTextPaintAmPm.clearShadowLayer();
+        }
+
+        private boolean is24Hour() {
+            if (mDemoTimeMode) {
+                return false;
+            }
+            int is24HourInt;
+            try {
+                is24HourInt = Settings.System.getInt(getContentResolver(), Settings.System.TIME_12_24);
+            } catch (Settings.SettingNotFoundException e) {
+                is24HourInt = -1;
+            }
+            if (is24HourInt == 24) {
+                return true;
+            } else if (is24HourInt == 12) {
+                return false;
+            } else {
+                return DateFormat.is24HourFormat(LEDWatchFace.this);
+            }
+        }
+
         private void createBackgroundBitmap(int width, int height) {
             if (!hasFaintSegments()) {
                 mBackgroundBitmap = null;
@@ -1439,40 +1484,6 @@ public class LEDWatchFace extends CanvasWatchFaceService {
                 } else {
                     canvas.drawRect(0, 0, bounds.width(), bounds.height(), mBackgroundPaint);
                 }
-            }
-        }
-
-        /**
-         * Starts the {@link #mUpdateTimeHandler} timer if it should
-         * be running and isn't currently or stops it if it shouldn't
-         * be running but currently is.
-         */
-        private void updateTimer() {
-            mUpdateTimeHandler.removeMessages(MSG_UPDATE_TIME);
-            if (shouldTimerBeRunning()) {
-                mUpdateTimeHandler.sendEmptyMessage(MSG_UPDATE_TIME);
-            }
-        }
-
-        /**
-         * Returns whether the {@link #mUpdateTimeHandler} timer
-         * should be running. The timer should only run when we're
-         * visible and in interactive mode.
-         */
-        private boolean shouldTimerBeRunning() {
-            return isVisible() && !isInAmbientMode();
-        }
-
-        /**
-         * Handle updating the time periodically in interactive mode.
-         */
-        private void handleUpdateTimeMessage() {
-            invalidate();
-            if (shouldTimerBeRunning()) {
-                long timeMs = System.currentTimeMillis();
-                long delayMs = INTERACTIVE_UPDATE_RATE_MS
-                        - (timeMs % INTERACTIVE_UPDATE_RATE_MS);
-                mUpdateTimeHandler.sendEmptyMessageDelayed(MSG_UPDATE_TIME, delayMs);
             }
         }
     }
