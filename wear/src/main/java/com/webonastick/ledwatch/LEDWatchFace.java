@@ -263,6 +263,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             mThemeColors.put(LEDWatchThemeMode.LCD, LEDWatchThemeColor.WHITE);
         }
 
+        /* Handler to update the time once a second in interactive mode. */
         private final Handler mUpdateTimeHandler = new EngineHandler(this);
         private Calendar mCalendar;
         private final BroadcastReceiver mTimeZoneReceiver = new BroadcastReceiver() {
@@ -815,7 +816,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
         }
 
         private static final int LEFT_RIGHT_PADDING_DP = 4;
-        
+
         private void computeTimeOfDayTextSizeAndOffsets() {
             float textSizeForCalculations = 1000f;
             float textWidth = mSurfaceWidth - dpToPixels(LEFT_RIGHT_PADDING_DP * 2);
@@ -851,7 +852,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             mXOffsetMiddle += shift;
             mXOffsetAmPm += shift;
         }
-        
+
         private void computeAmPmTextSizeAndHorizontalOffsets() {
             float textSize = mTextPaintMiddle.getTextSize();
 
@@ -911,7 +912,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
         private void computeVerticalOffsets() {
             float textSize = mTextPaintMiddle.getTextSize();
             float textSizeAmPm = mTextPaintAmPm.getTextSize();
-            
+
             float textAscent = -textSize;
             float textAscentAmPm = -textSizeAmPm * 0.7f;
             float lineSpacing = textSize * getLineSpacingRatio();
@@ -982,7 +983,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             mTextPaintBottomRight.setTypeface(mSevenSegmentTypeface);
             mTextPaintBottomRight2.setTypeface(mSixthsOfAPieTypeface);
             mTextPaintAmPm.setTypeface(AM_PM_TYPEFACE);
-            
+
             setAntiAlias(!mLowBitAmbient);
             setColor(mForegroundColor);
             setTextSkewX(textSkewX());
@@ -1014,7 +1015,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
         private float dpToPixels(int dp) {
             return dpToPixels((float) dp);
         }
-        
+
         private void setAntiAlias(boolean flag) {
             mTextPaintMiddle.setAntiAlias(flag);
             mTextPaintLeft.setAntiAlias(flag);
@@ -1026,7 +1027,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             mTextPaintBottomRight2.setAntiAlias(flag);
             mTextPaintAmPm.setAntiAlias(flag);
         }
-        
+
         private void setColor(int color) {
             mTextPaintMiddle.setColor(color);
             mTextPaintLeft.setColor(color);
@@ -1038,7 +1039,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             mTextPaintBottomRight2.setColor(color);
             mTextPaintAmPm.setColor(color);
         }
-        
+
         private void setAlpha(int alpha) {
             mTextPaintMiddle.setAlpha(alpha);
             mTextPaintLeft.setAlpha(alpha);
@@ -1391,7 +1392,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             mBackgroundBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
             backgroundCanvas.setBitmap(mBackgroundBitmap);
             backgroundCanvas.drawRect(0, 0, width, height, mBackgroundPaint);
-            
+
             setAntiAlias(!mLowBitAmbient);
             setColor(mForegroundColor);
             setAlpha(mFaintAlpha);
