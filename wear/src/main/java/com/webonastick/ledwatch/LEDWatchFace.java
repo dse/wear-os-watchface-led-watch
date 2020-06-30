@@ -263,6 +263,8 @@ public class LEDWatchFace extends CanvasWatchFaceService {
     private class Engine extends CanvasWatchFaceService.Engine implements MultiTapEventHandler<Region> {
 
         Engine() {
+            super();
+            // super(true); // when ready to mess with hardware acceleration
             mThemeColors = new HashMap<LEDWatchThemeMode, LEDWatchThemeColor>();
             mThemeColors.put(LEDWatchThemeMode.LED, LEDWatchThemeColor.BLUE);
             mThemeColors.put(LEDWatchThemeMode.VINTAGE_LED, LEDWatchThemeColor.RED);
