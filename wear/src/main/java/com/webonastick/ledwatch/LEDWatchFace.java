@@ -1488,6 +1488,8 @@ public class LEDWatchFace extends CanvasWatchFaceService {
         }
     }
 
+    // @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
     private static float getTextBoundsWidthDifference(String s1, String s2, Paint textPaint) {
         Rect bounds1 = new Rect();
         Rect bounds2 = new Rect();
