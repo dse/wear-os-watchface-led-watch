@@ -39,14 +39,45 @@ import com.webonastick.watchface.AmbientRefresher;
 import com.webonastick.util.HSPColor;
 import com.webonastick.watchface.ScreenTimeExtender;
 
-/**
- * A digital watch face with seconds, battery, and date.
- * The colon blinks.
- * <p>
- * Does not display seconds or blink the colon in ambient mode, and
- * draws text without anti-aliasing.
- */
 public class LEDWatchFace extends CanvasWatchFaceService {
+    private static final String TAG = "LEDWatchFace";
+
+    /**
+     * Update rate in milliseconds for interactive mode.  1/2 second
+     * for blinking colons.
+     */
+    private static final long INTERACTIVE_UPDATE_RATE_MS = TimeUnit.SECONDS.toMillis(1) / 2;
+
+    /**
+     * Handler message id for updating the time periodically in
+     * interactive mode.
+     */
+    private static final int MSG_UPDATE_TIME = 0;
+
+    @Override
+    public Engine onCreateEngine() {
+        return new Engine();
+    }
+
+    private static class EngineHandler extends Handler {
+        private final WeakReference<LEDWatchFace.Engine> mWeakReference;
+
+        public EngineHandler(LEDWatchFace.Engine reference) {
+            mWeakReference = new WeakReference<>(reference);
+        }
+
+        @Override
+        public void handleMessage(Message msg) {
+            LEDWatchFace.Engine engine = mWeakReference.get();
+            if (engine != null) {
+                switch (msg.what) {
+                    case MSG_UPDATE_TIME:
+                        engine.handleUpdateTimeMessage();
+                        break;
+                }
+            }
+        }
+    }
 
     public enum LEDWatchThemeMode {
         LED("foreground", "led"),
@@ -206,47 +237,8 @@ public class LEDWatchFace extends CanvasWatchFaceService {
         }
     }
 
-    private static final String TAG = "LEDWatchFace";
-
     private static final Typeface AM_PM_TYPEFACE =
             Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL);
-
-    /**
-     * Update rate in milliseconds for interactive mode.  1/2 second
-     * for blinking colons.
-     */
-    private static final long INTERACTIVE_UPDATE_RATE_MS = TimeUnit.SECONDS.toMillis(1) / 2;
-
-    /**
-     * Handler message id for updating the time periodically in
-     * interactive mode.
-     */
-    private static final int MSG_UPDATE_TIME = 0;
-
-    @Override
-    public Engine onCreateEngine() {
-        return new Engine();
-    }
-
-    private static class EngineHandler extends Handler {
-        private final WeakReference<LEDWatchFace.Engine> mWeakReference;
-
-        public EngineHandler(LEDWatchFace.Engine reference) {
-            mWeakReference = new WeakReference<>(reference);
-        }
-
-        @Override
-        public void handleMessage(Message msg) {
-            LEDWatchFace.Engine engine = mWeakReference.get();
-            if (engine != null) {
-                switch (msg.what) {
-                    case MSG_UPDATE_TIME:
-                        engine.handleUpdateTimeMessage();
-                        break;
-                }
-            }
-        }
-    }
 
     /* color of faint segments, after transparency applied, will be about as bright as this */
     private static final int COLOR_DARK_RED = 0xff440000;
