@@ -19,7 +19,7 @@
             android:value="true" />
 
         <service
-            android:name=".LEDWatchFace"
+            android:name="com.webonastick.watchface.ledwatch.LEDWatchFace"
             android:label="@string/app_name"
             android:permission="android.permission.BIND_WALLPAPER">
             <meta-data

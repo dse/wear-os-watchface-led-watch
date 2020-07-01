@@ -1,7 +1,9 @@
-package com.webonastick.ledwatch;
+package com.webonastick.watchface.ledwatch;
 
 import androidx.appcompat.app.AppCompatActivity;
 import android.os.Bundle;
+
+import com.webonastick.ledwatch.R;
 
 public class LEDWatchFaceWearableConfigActivity extends AppCompatActivity {
 

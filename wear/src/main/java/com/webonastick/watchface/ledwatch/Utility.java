@@ -1,4 +1,4 @@
-package com.webonastick.ledwatch;
+package com.webonastick.watchface.ledwatch;
 
 public class Utility {
     public enum LEDWatchThemeMode {

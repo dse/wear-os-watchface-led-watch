@@ -1,4 +1,4 @@
-package com.webonastick.ledwatch;
+package com.webonastick.watchface.ledwatch;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -33,6 +33,7 @@ import java.util.Map;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 
+import com.webonastick.ledwatch.R;
 import com.webonastick.watchface.MultiTapEventHandler;
 import com.webonastick.watchface.MultiTapHandler;
 import com.webonastick.watchface.AmbientRefresher;
