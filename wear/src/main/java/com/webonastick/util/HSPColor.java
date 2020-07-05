@@ -16,15 +16,15 @@ public class HSPColor {
     private static final float PB = 0.0722f;
 
     public HSPColor(float h, float s, float p) {
-        this.h = window(h);
-        this.s = window(s);
-        this.p = window(p);
+        this.h = clamp(h);
+        this.s = clamp(s);
+        this.p = clamp(p);
         this.calculateRGB();
     }
     public HSPColor(int h, int s, int p) {
-        this.h = window(h) / 255f;
-        this.s = window(s) / 255f;
-        this.p = window(p) / 255f;
+        this.h = clamp(h) / 255f;
+        this.s = clamp(s) / 255f;
+        this.p = clamp(p) / 255f;
         this.calculateRGB();
     }
     public HSPColor() {
@@ -110,9 +110,9 @@ public class HSPColor {
                 g = 0f;
             }
         }
-        r = window(r);
-        g = window(g);
-        b = window(b);
+        r = clamp(r);
+        g = clamp(g);
+        b = clamp(b);
     }
     
     private void calculateHSP() {
@@ -147,72 +147,72 @@ public class HSPColor {
     }
     
     public void setRGB(float r, float g, float b) {
-        this.r = window(r);
-        this.g = window(g);
-        this.b = window(b);
+        this.r = clamp(r);
+        this.g = clamp(g);
+        this.b = clamp(b);
         calculateHSP();
     }
     public void setRGB(int r, int g, int b) {
-        setRGB(window(r) / 255f, window(g) / 255f, window(b) / 255f);
+        setRGB(clamp(r) / 255f, clamp(g) / 255f, clamp(b) / 255f);
     }
     public void setRGB(int color) {
         setRGB(Color.red(color) / 255f, Color.green(color) / 255f, Color.blue(color) / 255f);
     }
     
     public void setRed(float r) {
-        this.r = window(r);
+        this.r = clamp(r);
         calculateHSP();
     }
     public void setGreen(float g) {
-        this.g = window(g);
+        this.g = clamp(g);
         calculateHSP();
     }
     public void setBlue(float b) {
-        this.b = window(b);
+        this.b = clamp(b);
         calculateHSP();
     }
 
     public void setRed(int r) {
-        setRed(window(r) / 255f);
+        setRed(clamp(r) / 255f);
     }
     public void setGreen(int g) {
-        setRed(window(g) / 255f);
+        setRed(clamp(g) / 255f);
     }
     public void setBlue(int b) {
-        setBlue(window(b) / 255f);
+        setBlue(clamp(b) / 255f);
     }
 
     public void setHSP(float h, float s, float p) {
-        this.h = window(h);
-        this.s = window(s);
-        this.p = window(p);
+        this.h = clamp(h);
+        this.s = clamp(s);
+        this.p = clamp(p);
         calculateRGB();
     }
     public void setHSP(int h, int s, int p) {
-        setHSP(window(h) / 255f, window(s) / 255f, window(p) / 255f);
+        setHSP(clamp(h) / 255f, clamp(s) / 255f, clamp(p) / 255f);
     }
 
     public void setHue(float h) {
-        this.h = window(h);
+        this.h = clamp(h);
         calculateRGB();
     }
     public void setSaturation(float s) {
-        this.s = window(s);
+        this.s = clamp(s);
         calculateRGB();
     }
     public void setPerceivedBrightness(float p) {
-        this.p = window(p);
+        this.p = clamp(p);
         calculateRGB();
     }
 
     public void setHue(int h) {
-        setHue(window(h) / 255f);
+        setHue(clamp(h) / 255f);
     }
     public void setSaturation(int s) {
-        setSaturation(window(s) / 255f);
+        setSaturation(clamp(s) / 255f);
     }
     public void setPerceivedBrightness(int p) {
-        setPerceivedBrightness(window(p) / 255f);
+        setPerceivedBrightness(clamp(p) / 255f);
     }
     
     public float red() {
@@ -241,9 +241,9 @@ public class HSPColor {
     }
     public static HSPColor fromRGB(int r, int g, int b) {
         return HSPColor.fromRGB(
-                window(r) / 255f, 
-                window(g) / 255f, 
-                window(b) / 255f
+                clamp(r) / 255f,
+                clamp(g) / 255f,
+                clamp(b) / 255f
         );
     }
     public static HSPColor fromRGB(int color) {
@@ -264,7 +264,7 @@ public class HSPColor {
         return HSPColor.fromRGB(r, g, b).perceivedBrightness();
     }
     
-    private static int window(int x) {
+    private static int clamp(int x) {
         if (x < 0) {
             return 0;
         }
@@ -273,7 +273,7 @@ public class HSPColor {
         }
         return x;
     }
-    private static float window(float x) {
+    private static float clamp(float x) {
         if (x < 0) {
             return 0;
         }
