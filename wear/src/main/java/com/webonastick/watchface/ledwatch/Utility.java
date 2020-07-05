@@ -162,6 +162,7 @@ public class Utility {
     enum Region {
         TOP,
         MIDDLE,
-        BOTTOM
+        BOTTOM,
+        WATCH_FACE_NAME
     }
 }

@@ -6,4 +6,6 @@
     <dimen name="digital_x_offset_round">25dp</dimen>
     <dimen name="digital_y_offset">90dp</dimen>
     <dimen name="line_spacing">8dp</dimen>
+    <dimen name="watch_face_name_font_size">8sp</dimen>
+    <dimen name="watch_face_name_margin">4dp</dimen>
 </resources>

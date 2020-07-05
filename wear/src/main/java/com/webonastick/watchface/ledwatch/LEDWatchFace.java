@@ -5,11 +5,13 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.content.pm.PackageInfo;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.Path;
 import android.graphics.Rect;
 import android.graphics.Typeface;
 import android.os.BatteryManager;
@@ -23,6 +25,7 @@ import android.support.wearable.watchface.WatchFaceStyle;
 import android.text.format.DateFormat;
 import android.view.Gravity;
 import android.view.SurfaceHolder;
+import android.view.WindowInsets;
 
 import java.lang.ref.WeakReference;
 import java.text.Normalizer;
@@ -82,6 +85,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
 
     private static final Typeface AM_PM_TYPEFACE =
             Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL);
+    private static final Typeface mTextTypeface = Typeface.SANS_SERIF;
 
     /* color of faint segments, after transparency applied, will be about as bright as this */
     private static final int COLOR_DARK_RED = 0xff440000;
@@ -167,6 +171,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
         private int mSurfaceHeight;
 
         Bitmap mBackgroundBitmap;
+        Bitmap mBackgroundBitmap2;
 
         private int mFaintAlpha = 0;
         private int mLetterSpacing = 0;
@@ -199,6 +204,9 @@ public class LEDWatchFace extends CanvasWatchFaceService {
         private SharedPreferences mSharedPreferences;
         private AmbientRefresher mAmbientRefresher;
         private ScreenTimeExtender mScreenTimeExtender;
+
+        private boolean mShowVersionNumber;
+        int chinSize;
 
         private int getBackgroundColorInt() {
             if (mAmbient) {
@@ -550,6 +558,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
 
             updateProperties();
             mBackgroundBitmap = null;
+            mBackgroundBitmap2 = null;
 
             mAmbientRefresher = new AmbientRefresher(LEDWatchFace.this, new Runnable() {
                 @Override
@@ -566,6 +575,13 @@ public class LEDWatchFace extends CanvasWatchFaceService {
         public void onDestroy() {
             mUpdateTimeHandler.removeMessages(MSG_UPDATE_TIME);
             super.onDestroy();
+        }
+
+        @Override
+        public void onApplyWindowInsets(WindowInsets insets) {
+            super.onApplyWindowInsets(insets);
+            mIsRound = insets.isRound();
+            chinSize = insets.getSystemWindowInsetBottom();
         }
 
         @Override
@@ -597,6 +613,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
 
             updateProperties();
             mBackgroundBitmap = null;
+            mBackgroundBitmap2 = null;
         }
 
         @Override
@@ -612,6 +629,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             mAmbient = inAmbientMode;
             updateProperties();
             mBackgroundBitmap = null;
+            mBackgroundBitmap2 = null;
 
             if (mAmbient) {
                 mAmbientRefresher.start();
@@ -637,9 +655,9 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             mPixelDensity = getResources().getDisplayMetrics().density;
             mSurfaceWidth = width;
             mSurfaceHeight = height;
-            mIsRound = getApplicationContext().getResources().getConfiguration().isScreenRound();
             updateProperties();
             mBackgroundBitmap = null;
+            mBackgroundBitmap2 = null;
             if (!mAmbient) {
                 mScreenTimeExtender.clearIdle();
             }
@@ -663,6 +681,11 @@ public class LEDWatchFace extends CanvasWatchFaceService {
                     float yy = y;
                     if (yy < mYOffsetTopMiddle) {
                         multiTapEvent(Utility.Region.TOP);
+                    } else if (yy > Math.round(mSurfaceHeight * 0.9f)) {
+                        cancelMultiTap();
+                        mShowVersionNumber = !mShowVersionNumber;
+                        mBackgroundBitmap2 = null;
+                        invalidate();
                     } else if (yy > mYOffsetMiddleBottom) {
                         multiTapEvent(Utility.Region.BOTTOM);
                     } else {
@@ -690,6 +713,7 @@ public class LEDWatchFace extends CanvasWatchFaceService {
                             saveThemePreference();
                             updateProperties();
                             mBackgroundBitmap = null;
+                            mBackgroundBitmap2 = null;
                             invalidate();
                             break;
                         case 3:
@@ -697,17 +721,22 @@ public class LEDWatchFace extends CanvasWatchFaceService {
                             saveThemePreference();
                             updateProperties();
                             mBackgroundBitmap = null;
+                            mBackgroundBitmap2 = null;
                             invalidate();
                             break;
                         case 4:
                             if (mEmulatorMode) {
                                 mDemoTimeMode = !mDemoTimeMode;
                                 mBackgroundBitmap = null;
+                                mBackgroundBitmap2 = null;
                                 updateProperties();
                                 invalidate();
                             }
                             break;
                     }
+                    break;
+                case WATCH_FACE_NAME:
+                    break;
             }
         }
 
@@ -731,7 +760,8 @@ public class LEDWatchFace extends CanvasWatchFaceService {
         @Override
         public void onDraw(Canvas canvas, Rect bounds) {
             createBackgroundBitmap(canvas.getWidth(), canvas.getHeight());
-            drawBackgroundBitmap(canvas, bounds);
+            createBackgroundBitmap2(canvas.getWidth(), canvas.getHeight());
+            drawBackgroundBitmap2(canvas, bounds);
 
             int batteryPercentage = 0;
             if (mShowBatteryLevel) {
@@ -1239,6 +1269,83 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             }
         }
 
+        private void createBackgroundBitmap2(int width, int height) {
+            if (mBackgroundBitmap2 != null) {
+                return;
+            }
+            if (mBackgroundBitmap != null) {
+                mBackgroundBitmap2 = Bitmap.createBitmap(mBackgroundBitmap);
+                Canvas backgroundCanvas = new Canvas(mBackgroundBitmap2);
+                drawWatchFaceName(backgroundCanvas);
+            } else {
+                mBackgroundBitmap2 = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+                Canvas backgroundCanvas = new Canvas(mBackgroundBitmap2);
+                backgroundCanvas.drawRect(0, 0, width, height, mBackgroundPaint);
+                drawWatchFaceName(backgroundCanvas);
+            }
+        }
+
+        private void drawWatchFaceName(Canvas canvas) {
+            if (mShowVersionNumber) {
+                drawWatchFaceVersionText(canvas);
+            } else {
+                drawWatchFaceNameText(canvas);
+            }
+        }
+
+        private void drawWatchFaceVersionText(Canvas canvas) {
+            try {
+                PackageInfo pInfo = getApplicationContext().getPackageManager().getPackageInfo(getPackageName(), 0);
+                String versionNameText = pInfo.versionName;
+                String versionCodeText = "(" + pInfo.versionCode + ")";
+                drawWatchFaceText(canvas, versionNameText + " " + versionCodeText);
+            } catch (Exception e) {
+                // do nothing
+            }
+        }
+
+        private void drawWatchFaceNameText(Canvas canvas) {
+            String watchFaceName = "LED WATCH 3000";
+            drawWatchFaceText(canvas, watchFaceName);
+        }
+
+        private void drawWatchFaceText(Canvas canvas, String text) {
+            Paint textPaint = new Paint();
+            float fontSize = getResources().getDimension(R.dimen.watch_face_name_font_size);
+            float margin   = getResources().getDimension(R.dimen.watch_face_name_margin);
+            textPaint.setTextSize(fontSize);
+            textPaint.setAntiAlias(true);
+            textPaint.setTextAlign(Paint.Align.CENTER);
+            textPaint.setTypeface(mTextTypeface);
+            textPaint.setColor(mForegroundColor);
+            switch (mThemeMode) {
+                case LED:
+                case VINTAGE_LED:
+                    textPaint.setAlpha(getFaintAlpha() * 2);
+                    break;
+                case LCD:
+                    textPaint.setAlpha(102);
+                    break;
+            }
+
+            float inset = fontSize * 0.3f;
+            if (mIsRound) {
+                Path path = new Path();
+                float xLeft = margin;
+                float xRight = mSurfaceWidth - margin;
+                float yTop = margin;
+                float yBottom = mSurfaceHeight - margin;
+                float startAngle = 180f;
+                float sweepAngle = -180f;
+                path.addArc(xLeft, yTop, xRight, yBottom, startAngle, sweepAngle);
+                canvas.drawTextOnPath(text, path, 0f, 0f, textPaint);
+            } else {
+                float x = mSurfaceWidth / 2;
+                float y = mSurfaceHeight - margin;
+                canvas.drawText(text, x, y, textPaint);
+            }
+        }
+
         private void createBackgroundBitmap(int width, int height) {
             if (!hasFaintSegments()) {
                 mBackgroundBitmap = null;
@@ -1309,19 +1416,12 @@ public class LEDWatchFace extends CanvasWatchFaceService {
             updateTextPaintProperties();
         }
 
-        private void drawBackgroundBitmap(Canvas canvas, Rect bounds) {
-            // Draw the background.
-            if (mLowBitAmbient) {
-                canvas.drawColor(Color.BLACK);
-            } else if (!hasFaintSegments()) {
-                canvas.drawColor(mBackgroundColor);
-            } else {
-                if (mBackgroundBitmap != null && mFaintAlpha > 0) {
-                    canvas.drawBitmap(mBackgroundBitmap, 0, 0, null);
+        private void drawBackgroundBitmap2(Canvas canvas, Rect bounds) {
+                if (mBackgroundBitmap2 != null) {
+                    canvas.drawBitmap(mBackgroundBitmap2, 0, 0, null);
                 } else {
                     canvas.drawRect(0, 0, bounds.width(), bounds.height(), mBackgroundPaint);
                 }
-            }
         }
     }
 
